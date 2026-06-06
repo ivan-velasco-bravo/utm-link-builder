@@ -1,0 +1,11 @@
+{
+  "uid": "utm_builder_home",
+  "type": "card",
+  "config": {
+    "name": "UTM Builder",
+    "description": "Build and save UTM tagged URLs",
+    "entrypoint": "/app/cards/utm-builder.tsx",
+    "location": "crm.record.tab",
+    "objectTypes": ["CONTACT"]
+  }
+}

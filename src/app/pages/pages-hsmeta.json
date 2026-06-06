@@ -1,0 +1,7 @@
+{
+  "uid": "utm_builder_page",
+  "type": "page",
+  "config": {
+    "entrypoint": "/app/pages/Pages.tsx"
+  }
+}

@@ -3,29 +3,22 @@ import {
   createPageRouter,
   PageHeader,
   PageRoutes,
-  usePageRoute,
 } from '@hubspot/ui-extensions/pages';
 import { HomePage } from './HomePage.tsx';
 import { DocsPage } from './DocsPage.tsx';
 import { RulesPage } from './RulesPage.tsx';
 
-const PageLayout = ({ children }: { children: any }) => {
-  const { currentPath } = usePageRoute();
-  const isRules = (currentPath || '').includes('rules');
-  return (
-    <>
-      <PageHeader>
-        <PageHeader.SecondaryActions>
-          {isRules
-            ? <PageHeader.PageLink to="/">Create UTM Link</PageHeader.PageLink>
-            : <PageHeader.PageLink to="/rules">Source → Medium Rules</PageHeader.PageLink>
-          }
-        </PageHeader.SecondaryActions>
-      </PageHeader>
-      {children}
-    </>
-  );
-};
+const PageLayout = ({ children }: { children: any }) => (
+  <>
+    <PageHeader>
+      <PageHeader.SecondaryActions>
+        <PageHeader.PageLink to="/">Create UTM Link</PageHeader.PageLink>
+        <PageHeader.PageLink to="/rules">Source → Medium Rules</PageHeader.PageLink>
+      </PageHeader.SecondaryActions>
+    </PageHeader>
+    {children}
+  </>
+);
 
 const PageRouter = createPageRouter(
   <PageRoutes layoutComponent={PageLayout}>

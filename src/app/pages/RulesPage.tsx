@@ -12,7 +12,6 @@ import {
   PageTitle,
   PageLink,
 } from '@hubspot/ui-extensions/pages';
-import { usePageRoute } from '@hubspot/ui-extensions/pages';
 import { useState, useEffect } from 'react';
 
 const SOURCES = [
@@ -91,7 +90,7 @@ function stateToMap(state: MapState): Record<string, string[]> {
 }
 
 export const RulesPage = () => {
-  const { navigate } = usePageRoute();
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -168,14 +167,13 @@ export const RulesPage = () => {
   return (
     <>
       <PageBreadcrumbs>
-        <PageBreadcrumbs.Current>Source → Medium Rules</PageBreadcrumbs.Current>
+        <PageBreadcrumbs.Current>Value Dependencies and Definitions</PageBreadcrumbs.Current>
       </PageBreadcrumbs>
-      <Button onClick={() => navigate("/")} variant="secondary">← Create UTM Link</Button>
-      <PageTitle>Source → Medium Dependency Rules</PageTitle>
+      <PageTitle>Value Dependencies and Definitions</PageTitle>
 
       <Flex direction="column" gap="medium">
         <Text variant="microcopy">
-          Control which UTM Mediums are available when each UTM Source is selected.
+          Source identifies the platform or technical enabler for the traffic — where you are posting or sending content. Medium describes the marketing method or channel type used to deliver that traffic.
         </Text>
 
         {isAdmin && (
@@ -196,6 +194,14 @@ export const RulesPage = () => {
         {saved && <Alert title="Saved!" variant="success">Rules updated successfully.</Alert>}
 
         <Flex direction="column" gap="extra-small">
+          <Flex direction="row" gap="none">
+            <Flex direction="column" gap="none" style={{ minWidth: '160px', width: '160px' }}>
+              <Text format={{ fontWeight: 'bold' }} variant="microcopy">Mediums</Text>
+            </Flex>
+            <Flex direction="column" gap="none" style={{ flex: 1 }}>
+              <Text format={{ fontWeight: 'bold' }} variant="microcopy">Sources</Text>
+            </Flex>
+          </Flex>
           <Flex direction="row" gap="none">
             <Flex direction="column" gap="none" style={{ minWidth: '160px', width: '160px' }}>
               <Text format={{ fontWeight: 'bold' }} variant="microcopy"> </Text>
@@ -238,6 +244,41 @@ export const RulesPage = () => {
             </Button>
           </Flex>
         )}
+      </Flex>
+
+      <Flex direction="column" gap="small">
+        <Text format={{ fontWeight: 'bold' }}>Medium Definitions</Text>
+        {[
+          { key: 'paid-social',    label: 'Paid social',          desc: 'Paid ads on social media platforms (boosted posts, sponsored content, social ad campaigns).' },
+          { key: 'organic-social', label: 'Organic social',       desc: 'Unpaid posts, shares, or links shared on social media profiles or pages.' },
+          { key: 'influencer',     label: 'Influencer campaigns', desc: 'Content distributed through influencer or creator partnerships on social platforms.' },
+          { key: 'retargeting',    label: 'Retargeting',          desc: 'Paid ads shown to users who have previously visited your site or engaged with your content.' },
+          { key: 'mkt-emails',     label: 'Marketing emails',     desc: 'Bulk or automated marketing emails sent to lists (newsletters, nurture sequences, promotional blasts).' },
+          { key: 'sales-emails',   label: 'Sales emails',         desc: '1:1 or sequenced outreach emails sent by sales reps to prospects or customers.' },
+          { key: 'sms',            label: 'SMS',                  desc: 'Text message campaigns sent to opted-in contacts.' },
+          { key: 'push',           label: 'Push notifications',   desc: 'Browser or app push notifications sent to subscribed users.' },
+          { key: 'referral',       label: 'Referral traffic',     desc: 'Traffic driven by links on third-party websites, directories, or partner pages (non-paid).' },
+          { key: 'affiliate',      label: 'Affiliate traffic',    desc: 'Traffic driven by affiliate partners who earn commission on conversions.' },
+          { key: 'paid-search',    label: 'Paid search',          desc: 'Pay-per-click ads on search engines (Google Ads, Bing Ads).' },
+          { key: 'display',        label: 'Banner / display',     desc: 'Visual display ads served on websites, apps, or ad networks (not search).' },
+          { key: 'video',          label: 'Video campaigns',      desc: 'Video ads served on platforms like YouTube, connected TV, or programmatic video networks.' },
+          { key: 'qr',             label: 'QR code',              desc: 'Links accessed by scanning a physical QR code (print, packaging, signage, events).' },
+          { key: 'print',          label: 'Print',                desc: 'Links appearing in printed materials (magazines, flyers, direct mail, brochures).' },
+          { key: 'webinar',        label: 'Webinars',             desc: 'Links shared during or promoting a live or recorded webinar session.' },
+          { key: 'event',          label: 'Events',               desc: 'Links associated with in-person or virtual events (conferences, trade shows, meetups).' },
+        ].map(({ key, label, desc }) => (
+          <Flex key={key} direction="row" gap="small">
+            <Flex style={{ minWidth: '120px', width: '120px' }}>
+              <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>{key}</Text>
+            </Flex>
+            <Flex style={{ minWidth: '160px', width: '160px' }}>
+              <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>{label}</Text>
+            </Flex>
+            <Flex style={{ flex: 1 }}>
+              <Text variant="microcopy">{desc}</Text>
+            </Flex>
+          </Flex>
+        ))}
       </Flex>
     </>
   );

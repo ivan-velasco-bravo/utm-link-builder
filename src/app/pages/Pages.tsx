@@ -13,7 +13,7 @@ const PageLayout = ({ children }: { children: any }) => (
     <PageHeader>
       <PageHeader.SecondaryActions>
         <PageHeader.PageLink to="/">Create UTM Link</PageHeader.PageLink>
-        <PageHeader.PageLink to="/rules">Source → Medium Rules</PageHeader.PageLink>
+        <PageHeader.PageLink to="/rules">Manage Dependencies</PageHeader.PageLink>
       </PageHeader.SecondaryActions>
     </PageHeader>
     {children}

@@ -171,7 +171,7 @@ export const RulesPage = () => {
       </PageBreadcrumbs>
       <PageTitle>Value Dependencies and Definitions</PageTitle>
 
-      <Flex direction="column" gap="medium">
+      <Flex direction="column" gap="large">
         <Text variant="microcopy">
           Source identifies the platform or technical enabler for the traffic — where you are posting or sending content. Medium describes the marketing method or channel type used to deliver that traffic.
         </Text>
@@ -207,7 +207,7 @@ export const RulesPage = () => {
         <Flex direction="column" gap="extra-small">
           <Flex direction="row" gap="none">
             <Flex direction="column" gap="none" style={{ minWidth: '160px', width: '160px' }}>
-              <Text format={{ fontWeight: 'bold' }} variant="microcopy"> </Text>
+              <Text format={{ fontWeight: 'bold' }} variant="microcopy">Mediums</Text>
             </Flex>
             <Flex direction="column" gap="none" style={{ flex: 1, alignItems: 'center' }}>
               <Text format={{ fontWeight: 'bold' }} variant="microcopy">Sources</Text>
@@ -215,11 +215,11 @@ export const RulesPage = () => {
           </Flex>
           <Flex direction="row" gap="none">
             <Flex direction="column" gap="none" style={{ minWidth: '160px', width: '160px' }}>
-              <Text format={{ fontWeight: 'bold' }} variant="microcopy">Mediums</Text>
+              <Text variant="microcopy"> </Text>
             </Flex>
             {SOURCES.map((src) => (
               <Flex key={src.value} direction="column" gap="none" style={{ minWidth: '68px', width: '68px', textAlign: 'center' }}>
-                <Text format={{ fontWeight: 'demibold' }} variant="microcopy">{src.label}</Text>
+                <Text variant="microcopy">{src.label}</Text>
               </Flex>
             ))}
           </Flex>

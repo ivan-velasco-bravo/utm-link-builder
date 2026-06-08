@@ -224,8 +224,8 @@ export const RulesPage = () => {
             ))}
           </Flex>
 
-          {MEDIUMS.map(med => (
-            <Flex key={med.value} direction="row" gap="none">
+          {MEDIUMS.map((med, i) => (
+            <Flex key={med.value} direction="row" gap="none" style={{ background: i % 2 === 0 ? '#f5f8fa' : '#ffffff' }}>
               <Flex direction="column" gap="none" style={{ minWidth: '160px', width: '160px' }}>
                 <Text variant="microcopy">{med.label}</Text>
               </Flex>
@@ -257,7 +257,7 @@ export const RulesPage = () => {
         )}
       </Flex>
 
-      <Flex direction="column" gap="small">
+      <Flex direction="column" gap="small" style={{ marginTop: '24px' }}>
         <Text format={{ fontWeight: 'bold' }}>Medium Definitions</Text>
         {[
           { key: 'paid-social',    label: 'Paid social',          desc: 'Paid ads on social media platforms (boosted posts, sponsored content, social ad campaigns).' },
@@ -277,12 +277,9 @@ export const RulesPage = () => {
           { key: 'print',          label: 'Print',                desc: 'Links appearing in printed materials (magazines, flyers, direct mail, brochures).' },
           { key: 'webinar',        label: 'Webinars',             desc: 'Links shared during or promoting a live or recorded webinar session.' },
           { key: 'event',          label: 'Events',               desc: 'Links associated with in-person or virtual events (conferences, trade shows, meetups).' },
-        ].map(({ key, label, desc }) => (
-          <Flex key={key} direction="row" gap="small">
-            <Flex style={{ minWidth: '120px', width: '120px' }}>
-              <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>{key}</Text>
-            </Flex>
-            <Flex style={{ minWidth: '160px', width: '160px' }}>
+        ].map(({ key, label, desc }, i) => (
+          <Flex key={key} direction="row" gap="small" style={{ padding: '6px 8px', background: i % 2 === 0 ? '#f5f8fa' : '#ffffff', borderRadius: '4px' }}>
+            <Flex style={{ minWidth: '180px', width: '180px' }}>
               <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>{label}</Text>
             </Flex>
             <Flex style={{ flex: 1 }}>

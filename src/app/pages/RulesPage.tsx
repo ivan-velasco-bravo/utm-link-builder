@@ -194,7 +194,7 @@ export const RulesPage = () => {
         {saved && <Alert title="Saved!" variant="success">Rules updated successfully.</Alert>}
 
         {editable && (
-          <Flex direction="row" gap="small">
+          <Flex direction="row" gap="small" style={{ margin: "12px 0" }}>
             <Button onClick={() => { setMatrix(mapToState(DEFAULT_MAP)); setDirty(true); setSaved(false); }} variant="secondary">
               Reset to defaults
             </Button>
@@ -207,11 +207,18 @@ export const RulesPage = () => {
         <Flex direction="column" gap="extra-small">
           <Flex direction="row" gap="none">
             <Flex direction="column" gap="none" style={{ minWidth: '160px', width: '160px' }}>
+              <Text format={{ fontWeight: 'bold' }} variant="microcopy"> </Text>
+            </Flex>
+            <Flex direction="column" gap="none" style={{ flex: 1, alignItems: 'center' }}>
+              <Text format={{ fontWeight: 'bold' }} variant="microcopy">Sources</Text>
+            </Flex>
+          </Flex>
+          <Flex direction="row" gap="none">
+            <Flex direction="column" gap="none" style={{ minWidth: '160px', width: '160px' }}>
               <Text format={{ fontWeight: 'bold' }} variant="microcopy">Mediums</Text>
             </Flex>
-            {SOURCES.map((src, i) => (
+            {SOURCES.map((src) => (
               <Flex key={src.value} direction="column" gap="none" style={{ minWidth: '68px', width: '68px', textAlign: 'center' }}>
-                {i === 0 && <Text format={{ fontWeight: 'bold' }} variant="microcopy">Sources</Text>}
                 <Text format={{ fontWeight: 'demibold' }} variant="microcopy">{src.label}</Text>
               </Flex>
             ))}
@@ -239,7 +246,7 @@ export const RulesPage = () => {
         </Flex>
 
         {editable && (
-          <Flex direction="row" gap="small">
+          <Flex direction="row" gap="small" style={{ margin: "12px 0" }}>
             <Button onClick={() => { setMatrix(mapToState(DEFAULT_MAP)); setDirty(true); setSaved(false); }} variant="secondary">
               Reset to defaults
             </Button>

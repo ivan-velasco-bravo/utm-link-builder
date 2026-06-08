@@ -225,8 +225,8 @@ export const RulesPage = () => {
           </Flex>
 
           {MEDIUMS.map((med, i) => (
-            <Flex key={med.value} direction="row" gap="none" style={{ background: i % 2 === 0 ? '#f5f8fa' : '#ffffff' }}>
-              <Flex direction="column" gap="none" style={{ minWidth: '160px', width: '160px' }}>
+            <Flex key={med.value} direction="row" gap="none" style={{ background: i % 2 === 0 ? '#f5f8fa' : '#ffffff', border: '1px solid #e5e8eb', borderRadius: '3px' }}>
+              <Flex direction="column" gap="none" style={{ minWidth: '110px', width: '110px' }}>
                 <Text variant="microcopy">{med.label}</Text>
               </Flex>
               {SOURCES.map(src => (
@@ -257,7 +257,10 @@ export const RulesPage = () => {
         )}
       </Flex>
 
-      <Flex direction="column" gap="small" style={{ marginTop: '24px' }}>
+      <Text variant="microcopy"> </Text>
+      <Text variant="microcopy"> </Text>
+      <Text variant="microcopy"> </Text>
+      <Flex direction="column" gap="small">
         <Text format={{ fontWeight: 'bold' }}>Medium Definitions</Text>
         {[
           { key: 'paid-social',    label: 'Paid social',          desc: 'Paid ads on social media platforms (boosted posts, sponsored content, social ad campaigns).' },
@@ -279,7 +282,7 @@ export const RulesPage = () => {
           { key: 'event',          label: 'Events',               desc: 'Links associated with in-person or virtual events (conferences, trade shows, meetups).' },
         ].map(({ key, label, desc }, i) => (
           <Flex key={key} direction="row" gap="small" style={{ padding: '6px 8px', background: i % 2 === 0 ? '#f5f8fa' : '#ffffff', borderRadius: '4px' }}>
-            <Flex style={{ minWidth: '180px', width: '180px' }}>
+            <Flex style={{ minWidth: '140px', width: '140px' }}>
               <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>{label}</Text>
             </Flex>
             <Flex style={{ flex: 1 }}>

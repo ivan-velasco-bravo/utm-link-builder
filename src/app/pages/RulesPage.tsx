@@ -193,21 +193,25 @@ export const RulesPage = () => {
         {error && <Alert title="Error" variant="error">{error}</Alert>}
         {saved && <Alert title="Saved!" variant="success">Rules updated successfully.</Alert>}
 
+        {editable && (
+          <Flex direction="row" gap="small">
+            <Button onClick={() => { setMatrix(mapToState(DEFAULT_MAP)); setDirty(true); setSaved(false); }} variant="secondary">
+              Reset to defaults
+            </Button>
+            <Button onClick={() => handleSave(editable)} variant="primary" disabled={saving || !dirty}>
+              {saving ? 'Saving...' : 'Save changes'}
+            </Button>
+          </Flex>
+        )}
+
         <Flex direction="column" gap="extra-small">
           <Flex direction="row" gap="none">
             <Flex direction="column" gap="none" style={{ minWidth: '160px', width: '160px' }}>
               <Text format={{ fontWeight: 'bold' }} variant="microcopy">Mediums</Text>
             </Flex>
-            <Flex direction="column" gap="none" style={{ flex: 1 }}>
-              <Text format={{ fontWeight: 'bold' }} variant="microcopy">Sources</Text>
-            </Flex>
-          </Flex>
-          <Flex direction="row" gap="none">
-            <Flex direction="column" gap="none" style={{ minWidth: '160px', width: '160px' }}>
-              <Text format={{ fontWeight: 'bold' }} variant="microcopy"> </Text>
-            </Flex>
-            {SOURCES.map(src => (
+            {SOURCES.map((src, i) => (
               <Flex key={src.value} direction="column" gap="none" style={{ minWidth: '68px', width: '68px', textAlign: 'center' }}>
+                {i === 0 && <Text format={{ fontWeight: 'bold' }} variant="microcopy">Sources</Text>}
                 <Text format={{ fontWeight: 'demibold' }} variant="microcopy">{src.label}</Text>
               </Flex>
             ))}

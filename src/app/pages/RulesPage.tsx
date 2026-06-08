@@ -1,5 +1,7 @@
+import React from 'react';
 import {
   Button,
+  Divider,
   Flex,
   Text,
   Alert,
@@ -225,7 +227,9 @@ export const RulesPage = () => {
           </Flex>
 
           {MEDIUMS.map((med, i) => (
-            <Flex key={med.value} direction="row" gap="none" style={{ background: i % 2 === 0 ? '#f5f8fa' : '#ffffff', border: '1px solid #e5e8eb', borderRadius: '3px' }}>
+            <React.Fragment key={med.value}>
+            {i > 0 && <Divider />}
+            <Flex direction="row" gap="none">
               <Flex direction="column" gap="none" style={{ minWidth: '110px', width: '110px' }}>
                 <Text variant="microcopy">{med.label}</Text>
               </Flex>
@@ -242,6 +246,7 @@ export const RulesPage = () => {
                 </Flex>
               ))}
             </Flex>
+            </React.Fragment>
           ))}
         </Flex>
 
@@ -281,7 +286,9 @@ export const RulesPage = () => {
           { key: 'webinar',        label: 'Webinars',             desc: 'Links shared during or promoting a live or recorded webinar session.' },
           { key: 'event',          label: 'Events',               desc: 'Links associated with in-person or virtual events (conferences, trade shows, meetups).' },
         ].map(({ key, label, desc }, i) => (
-          <Flex key={key} direction="row" gap="small" style={{ padding: '6px 8px', background: i % 2 === 0 ? '#f5f8fa' : '#ffffff', borderRadius: '4px' }}>
+          <React.Fragment key={key}>
+          {i > 0 && <Divider />}
+          <Flex direction="row" gap="small" style={{ padding: '6px 4px' }}>
             <Flex style={{ minWidth: '140px', width: '140px' }}>
               <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>{label}</Text>
             </Flex>
@@ -289,6 +296,7 @@ export const RulesPage = () => {
               <Text variant="microcopy">{desc}</Text>
             </Flex>
           </Flex>
+          </React.Fragment>
         ))}
       </Flex>
     </>

@@ -3,7 +3,6 @@ import {
   Button,
   Divider,
   Flex,
-  Heading,
   Tag,
   Text,
   Alert,
@@ -272,12 +271,8 @@ export const RulesPage = () => {
 
         <ButtonRow />
 
-        {/* Lock toggle — right-aligned to matrix edge */}
         {isAdmin && (
-          <Flex direction="row" gap="none">
-            <Flex direction="column" gap="none" style={{ minWidth: '900px', width: '900px' }}>
-              <Text variant="microcopy"> </Text>
-            </Flex>
+          <Flex direction="row" gap="none" style={{ justifyContent: 'flex-end', alignItems: 'center' }}>
             <Flex direction="row" gap="extra-small" style={{ alignItems: 'center' }}>
               <Text format={{ fontWeight: 'bold' }}>LOCK</Text>
               <Tag overlay={<Tooltip>Only app editors will be able to make changes</Tooltip>}>ⓘ</Tag>
@@ -339,10 +334,17 @@ export const RulesPage = () => {
 
         <ButtonRow />
 
+        {lastUpdated && (
+          <Text variant="microcopy">
+            Last updated: {lastUpdated}{lastUpdatedBy ? ` by ${lastUpdatedBy}` : ''}
+          </Text>
+        )}
+
         {/* Source definitions — read only */}
         {sources.length > 0 && (
           <Flex direction="column" gap="extra-small" style={{ paddingTop: "24px" }}>
-            <Heading>Source Definitions:</Heading>
+            <Text format={{ fontWeight: "bold" }}>Source Definitions</Text>
+            <Divider />
             <Flex direction="row" gap="none" style={{ padding: '4px 4px' }}>
               <Flex style={{ minWidth: '140px', width: '140px' }}>
                 <Text format={{ fontWeight: 'bold' }}>Label</Text>
@@ -371,7 +373,8 @@ export const RulesPage = () => {
         {/* Medium definitions — read only */}
         {mediums.length > 0 && (
           <Flex direction="column" gap="extra-small" style={{ paddingTop: "24px" }}>
-            <Heading>Medium Definitions:</Heading>
+            <Text format={{ fontWeight: "bold" }}>Medium Definitions</Text>
+            <Divider />
             <Flex direction="row" gap="none" style={{ padding: '4px 4px' }}>
               <Flex style={{ minWidth: '140px', width: '140px' }}>
                 <Text format={{ fontWeight: 'bold' }}>Label</Text>

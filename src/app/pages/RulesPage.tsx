@@ -267,14 +267,14 @@ export const RulesPage = () => {
             )}
           </Flex>
           {isAdmin && (
-            <Flex direction="column" gap="none" style={{ alignItems: 'flex-end' }}>
+            <Flex direction="row" gap="extra-small" style={{ alignItems: 'center' }}>
               <Toggle
                 name="super_admin_only"
-                label={superAdminOnly ? 'Lock On' : 'Lock Off'}
+                label={superAdminOnly ? 'LOCK ON' : 'LOCK OFF'}
                 checked={superAdminOnly}
                 onChange={(checked) => handleToggleSuperAdminOnly(checked)}
               />
-              <Text variant="microcopy">Only app editors will be able to make changes</Text>
+              <Text variant="microcopy" title="Only app editors will be able to make changes">ⓘ</Text>
             </Flex>
           )}
         </Flex>

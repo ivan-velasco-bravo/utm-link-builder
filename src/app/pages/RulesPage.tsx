@@ -255,7 +255,7 @@ export const RulesPage = () => {
       </PageBreadcrumbs>
       <PageTitle>Field Dependencies</PageTitle>
 
-      <Flex direction="column" gap="large">
+      <Flex direction="column" gap="medium">
         <Text variant="microcopy">
           Define which UTM Mediums are available for each UTM Source. When a source is selected on the Create UTM Link page, only its allowed mediums will appear. Use this page to configure those dependencies, then save to apply them across the app. Sync field values to pull the latest source and medium options from HubSpot.
         </Text>

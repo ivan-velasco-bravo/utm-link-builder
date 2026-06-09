@@ -16,7 +16,8 @@ import {
 } from '@hubspot/ui-extensions/pages';
 import { useState, useEffect } from 'react';
 
-const SOURCES = [
+// Fallback arrays if HubSpot property options are unavailable
+const DEFAULT_SOURCES = [
   { label: 'LinkedIn', value: 'linkedin' },
   { label: 'Instagram', value: 'instagram' },
   { label: 'Facebook', value: 'facebook' },
@@ -32,7 +33,7 @@ const SOURCES = [
   { label: 'Offline', value: 'offline' },
 ];
 
-const MEDIUMS = [
+const DEFAULT_MEDIUMS = [
   { label: 'Paid social', value: 'paid-social' },
   { label: 'Organic social', value: 'organic-social' },
   { label: 'Influencer Campaigns', value: 'influencer' },
@@ -72,21 +73,21 @@ export const STORAGE_KEY = 'utm_source_medium_map';
 
 type MapState = Record<string, Record<string, boolean>>;
 
-function mapToState(map: Record<string, string[]>): MapState {
+function mapToState(map: Record<string, string[]>, srcs = DEFAULT_SOURCES, meds = DEFAULT_MEDIUMS): MapState {
   const state: MapState = {};
-  for (const src of SOURCES) {
+  for (const src of srcs) {
     state[src.value] = {};
-    for (const med of MEDIUMS) {
+    for (const med of meds) {
       state[src.value][med.value] = (map[src.value] || []).includes(med.value);
     }
   }
   return state;
 }
 
-function stateToMap(state: MapState): Record<string, string[]> {
+function stateToMap(state: MapState, srcs: {label: string, value: string}[], meds: {label: string, value: string}[]): Record<string, string[]> {
   const map: Record<string, string[]> = {};
-  for (const src of SOURCES) {
-    map[src.value] = MEDIUMS.filter(med => state[src.value]?.[med.value]).map(med => med.value);
+  for (const src of srcs) {
+    map[src.value] = meds.filter(med => state[src.value]?.[med.value]).map(med => med.value);
   }
   return map;
 }
@@ -101,6 +102,8 @@ export const RulesPage = () => {
   const [dirty, setDirty] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [superAdminOnly, setSuperAdminOnly] = useState(false);
+  const [sources, setSources] = useState<{label: string, value: string}[]>([]);
+  const [mediums, setMediums] = useState<{label: string, value: string}[]>([]);
 
   useEffect(() => { loadAll(); }, []);
 
@@ -111,16 +114,23 @@ export const RulesPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const [mapResult, adminResult, settingResult] = await Promise.all([
+      const [mapResult, adminResult, settingResult, optionsResult] = await Promise.all([
         callFn('getMap'),
         callFn('checkAdmin'),
         callFn('getSetting', { key: 'superAdminOnly' }),
+        callFn('getOptions'),
       ]);
       setIsAdmin(adminResult?.isAdmin === true);
       setSuperAdminOnly(settingResult?.value === 'true');
-      setMatrix(mapToState(mapResult?.map || DEFAULT_MAP));
+      const liveSources = (optionsResult?.sourceOptions || []).map((o: any) => ({ label: o.label, value: o.value }));
+      const liveMediums = (optionsResult?.mediumOptions || []).map((o: any) => ({ label: o.label, value: o.value }));
+      setSources(liveSources.length > 0 ? liveSources : DEFAULT_SOURCES);
+      setMediums(liveMediums.length > 0 ? liveMediums : DEFAULT_MEDIUMS);
+      setMatrix(mapToState(mapResult?.map || DEFAULT_MAP, liveSources.length > 0 ? liveSources : DEFAULT_SOURCES, liveMediums.length > 0 ? liveMediums : DEFAULT_MEDIUMS));
     } catch (e) {
-      setMatrix(mapToState(DEFAULT_MAP));
+      setSources(DEFAULT_SOURCES);
+      setMediums(DEFAULT_MEDIUMS);
+      setMatrix(mapToState(DEFAULT_MAP, DEFAULT_SOURCES, DEFAULT_MEDIUMS));
     } finally {
       setLoading(false);
     }
@@ -141,7 +151,7 @@ export const RulesPage = () => {
     setSaving(true);
     setError(null);
     try {
-      const result = await callFn('setMap', { map: stateToMap(matrix) });
+      const result = await callFn('setMap', { map: stateToMap(matrix, sources, mediums) });
       if (result?.error) throw new Error(result.error);
       setSaved(true);
       setDirty(false);
@@ -197,7 +207,7 @@ export const RulesPage = () => {
 
         {editable && (
           <Flex direction="row" gap="small" style={{ margin: "12px 0" }}>
-            <Button onClick={() => { setMatrix(mapToState(DEFAULT_MAP)); setDirty(true); setSaved(false); }} variant="secondary">
+            <Button onClick={() => { setMatrix(mapToState(DEFAULT_MAP, sources, mediums)); setDirty(true); setSaved(false); }} variant="secondary">
               Reset to defaults
             </Button>
             <Button onClick={() => handleSave(editable)} variant="primary" disabled={saving || !dirty}>
@@ -209,31 +219,31 @@ export const RulesPage = () => {
         <Flex direction="column" gap="extra-small">
           <Flex direction="row" gap="none">
             <Flex direction="column" gap="none" style={{ minWidth: '160px', width: '160px' }}>
-              <Text format={{ fontWeight: 'bold' }} variant="microcopy">Mediums</Text>
+              <Text format={{ fontWeight: 'bold' }} variant="microcopy">Medium/Text>
             </Flex>
             <Flex direction="column" gap="none" style={{ flex: 1, alignItems: 'center' }}>
-              <Text format={{ fontWeight: 'bold' }} variant="microcopy">Sources</Text>
+              <Text format={{ fontWeight: 'bold' }} variant="microcopy">Source/Text>
             </Flex>
           </Flex>
           <Flex direction="row" gap="none">
             <Flex direction="column" gap="none" style={{ minWidth: '160px', width: '160px' }}>
               <Text variant="microcopy"> </Text>
             </Flex>
-            {SOURCES.map((src) => (
+            {sources.map((src) => (
               <Flex key={src.value} direction="column" gap="none" style={{ minWidth: '68px', width: '68px', textAlign: 'center' }}>
                 <Text variant="microcopy">{src.label}</Text>
               </Flex>
             ))}
           </Flex>
 
-          {MEDIUMS.map((med, i) => (
+          {mediums.map((med, i) => (
             <React.Fragment key={med.value}>
             {i > 0 && <Divider />}
             <Flex direction="row" gap="none">
               <Flex direction="column" gap="none" style={{ minWidth: '110px', width: '110px' }}>
                 <Text variant="microcopy">{med.label}</Text>
               </Flex>
-              {SOURCES.map(src => (
+              {sources.map(src => (
                 <Flex key={src.value} direction="column" gap="none" style={{ minWidth: '68px', width: '68px', alignItems: 'center' }}>
                   <Button
                     onClick={() => toggle(src.value, med.value, editable)}
@@ -252,7 +262,7 @@ export const RulesPage = () => {
 
         {editable && (
           <Flex direction="row" gap="small" style={{ margin: "12px 0" }}>
-            <Button onClick={() => { setMatrix(mapToState(DEFAULT_MAP)); setDirty(true); setSaved(false); }} variant="secondary">
+            <Button onClick={() => { setMatrix(mapToState(DEFAULT_MAP, sources, mediums)); setDirty(true); setSaved(false); }} variant="secondary">
               Reset to defaults
             </Button>
             <Button onClick={() => handleSave(editable)} variant="primary" disabled={saving || !dirty}>

@@ -219,43 +219,29 @@ export const RulesPage = () => {
   const rowBg = (i: number) => ({ padding: '6px 4px', background: i % 2 === 0 ? '#f5f8fa' : '#ffffff' });
 
   const ButtonRow = () => (
-    <Flex direction="column" gap="extra-small">
-      {isAdmin && (
-        <Flex direction="row" gap="extra-small" style={{ alignItems: 'center' }}>
-          <Toggle
-            name="super_admin_only"
-            label=""
-            checked={superAdminOnly}
-            onChange={(checked) => handleToggleSuperAdminOnly(checked)}
-          />
-          <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Lock Edit</Text>
-          <Text variant="microcopy">(Only app editors will be able to make changes)</Text>
-        </Flex>
-      )}
-      <Flex direction="row" gap="small">
-        {editable && (
-          <>
-            <Button
-              onClick={() => { setMatrix(mapToState(DEFAULT_MAP, sources, mediums)); setDirty(true); setSaved(false); }}
-              variant="secondary"
-            >
-              Reset to defaults
-            </Button>
-            <Button
-              onClick={() => handleSave(editable)}
-              variant="primary"
-              disabled={saving || !dirty}
-            >
-              {saving ? 'Saving...' : 'Save changes'}
-            </Button>
-          </>
-        )}
-        {isAdmin && (
-          <Button onClick={handleSync} variant="secondary" disabled={syncing || !editable}>
-            {syncing ? 'Syncing...' : 'Sync field values'}
+    <Flex direction="row" gap="small">
+      {editable && (
+        <>
+          <Button
+            onClick={() => { setMatrix(mapToState(DEFAULT_MAP, sources, mediums)); setDirty(true); setSaved(false); }}
+            variant="secondary"
+          >
+            Reset to defaults
           </Button>
-        )}
-      </Flex>
+          <Button
+            onClick={() => handleSave(editable)}
+            variant="primary"
+            disabled={saving || !dirty}
+          >
+            {saving ? 'Saving...' : 'Save changes'}
+          </Button>
+        </>
+      )}
+      {isAdmin && (
+        <Button onClick={handleSync} variant="secondary" disabled={syncing || !editable}>
+          {syncing ? 'Syncing...' : 'Sync field values'}
+        </Button>
+      )}
     </Flex>
   );
 
@@ -271,11 +257,29 @@ export const RulesPage = () => {
           Source identifies the platform or technical enabler for the traffic — where you are posting or sending content. Medium describes the marketing method or channel type used to deliver that traffic.
         </Text>
 
-        {lastUpdated && (
-          <Text variant="microcopy">
-            Last updated: {lastUpdated}{lastUpdatedBy ? ` by ${lastUpdatedBy}` : ''}
-          </Text>
-        )}
+        <Flex direction="row" gap="none" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <Flex direction="column" gap="none">
+            {lastUpdated && (
+              <Text variant="microcopy">
+                Last updated: {lastUpdated}{lastUpdatedBy ? ` by ${lastUpdatedBy}` : ''}
+              </Text>
+            )}
+          </Flex>
+          {isAdmin && (
+            <Flex direction="row" gap="extra-small" style={{ alignItems: 'center' }}>
+              <Flex direction="column" gap="none" style={{ textAlign: 'right' }}>
+                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Lock Edit</Text>
+                <Text variant="microcopy">Only app editors will be able to make changes</Text>
+              </Flex>
+              <Toggle
+                name="super_admin_only"
+                label=""
+                checked={superAdminOnly}
+                onChange={(checked) => handleToggleSuperAdminOnly(checked)}
+              />
+            </Flex>
+          )}
+        </Flex>
 
         {!editable && (
           <Alert title="View only" variant="warning">Editing is locked. Only app editors can make changes.</Alert>

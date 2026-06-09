@@ -522,7 +522,7 @@ export const NewUtmBuilderPage = () => {
           <DateInput
             label="Content Activation Date"
             name="content_activation_date"
-            value={toDateInputValue(form.content_activation_date)}
+            value={toDateInputValue(form.content_activation_date) || undefined}
             onChange={handleDatePickerChange}
             format="YYYY-MM-DD"
             clearButtonLabel="Clear"

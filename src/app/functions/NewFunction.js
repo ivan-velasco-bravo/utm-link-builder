@@ -272,6 +272,51 @@ exports.main = async (context) => {
         return { success: true, id };
       }
 
+      // Create multiple UTM link CRM records
+      case 'createUtmLinks': {
+        const { items, campaignId } = params;
+        if (!Array.isArray(items) || items.length === 0) return { error: 'No UTM Link records to create.' };
+
+        const created = [];
+        const errors = [];
+        const warnings = [];
+
+        for (let i = 0; i < items.length; i += 1) {
+          const properties = items[i]?.properties;
+          if (!properties) {
+            errors.push({ index: i, error: 'Missing properties.' });
+            continue;
+          }
+
+          const r = await apiRequest('POST', '/crm/v3/objects/2-203776196', { properties }, token);
+          if (r.status !== 201) {
+            errors.push({ index: i, error: `Create failed ${r.status}: ${JSON.stringify(r.data)}` });
+            continue;
+          }
+
+          const id = r.data.id;
+          created.push({ index: i, id });
+
+          if (campaignId && id) {
+            const assoc = await apiRequest('PUT',
+              `/crm/v4/objects/2-203776196/${id}/associations/0-35/${campaignId}`,
+              [{ associationCategory: 'USER_DEFINED', associationTypeId: 42 }], token);
+            if (assoc.status >= 400) warnings.push({ index: i, id, warning: `Assoc failed: ${JSON.stringify(assoc.data)}` });
+          }
+        }
+
+        if (errors.length > 0) {
+          return {
+            error: `Created ${created.length} of ${items.length} UTM Link records. ${errors.length} failed.`,
+            created,
+            errors,
+            warnings,
+          };
+        }
+
+        return { success: true, created, warnings };
+      }
+
       default: return { error: `Unknown action: ${action}` };
     }
   } catch (e) {

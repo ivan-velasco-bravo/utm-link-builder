@@ -3,7 +3,6 @@ import {
   Button,
   Divider,
   Flex,
-  Tag,
   Text,
   Alert,
   LoadingSpinner,
@@ -269,13 +268,16 @@ export const RulesPage = () => {
         {error && <Alert title="Error" variant="error">{error}</Alert>}
         {saved && <Alert title="Saved!" variant="success">Dependencies updated successfully.</Alert>}
 
-        <ButtonRow />
-
         {isAdmin && (
-          <Flex direction="row" gap="none" style={{ justifyContent: 'flex-end', alignItems: 'center' }}>
+          <Flex direction="row" gap="small" style={{ alignItems: 'center' }}>
+            <Text variant="microcopy" format={{ fontWeight: 'bold' }}> </Text>
             <Flex direction="row" gap="extra-small" style={{ alignItems: 'center' }}>
               <Text format={{ fontWeight: 'bold' }}>LOCK</Text>
-              <Tag overlay={<Tooltip>Only app editors will be able to make changes</Tooltip>}>ⓘ</Tag>
+              <Button
+                variant="secondary"
+                size="xs"
+                overlay={<Tooltip>Only app editors will be able to make changes</Tooltip>}
+              >ⓘ</Button>
               <Toggle
                 name="super_admin_only"
                 label=""
@@ -286,6 +288,8 @@ export const RulesPage = () => {
             </Flex>
           </Flex>
         )}
+
+        <ButtonRow />
 
         {/* Dependency matrix */}
         <Flex direction="column" gap="extra-small">
@@ -343,7 +347,7 @@ export const RulesPage = () => {
         {/* Source definitions — read only */}
         {sources.length > 0 && (
           <Flex direction="column" gap="extra-small" style={{ paddingTop: "24px" }}>
-            <Text format={{ fontWeight: "bold" }}>Source Definitions</Text>
+            <Text format={{ fontWeight: "bold" }}>Source Definitions:</Text>
             <Divider />
             <Flex direction="row" gap="none" style={{ padding: '4px 4px' }}>
               <Flex style={{ minWidth: '140px', width: '140px' }}>
@@ -373,7 +377,7 @@ export const RulesPage = () => {
         {/* Medium definitions — read only */}
         {mediums.length > 0 && (
           <Flex direction="column" gap="extra-small" style={{ paddingTop: "24px" }}>
-            <Text format={{ fontWeight: "bold" }}>Medium Definitions</Text>
+            <Text format={{ fontWeight: "bold" }}>Medium Definitions:</Text>
             <Divider />
             <Flex direction="row" gap="none" style={{ padding: '4px 4px' }}>
               <Flex style={{ minWidth: '140px', width: '140px' }}>

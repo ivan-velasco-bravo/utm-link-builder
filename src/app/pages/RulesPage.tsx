@@ -232,12 +232,15 @@ export const RulesPage = () => {
         </Text>
 
         {isAdmin && (
-          <Toggle
-            name="super_admin_only"
-            label="Admin edit only"
-            checked={superAdminOnly}
-            onChange={(checked) => handleToggleSuperAdminOnly(checked)}
-          />
+          <Flex direction="row" gap="small" style={{ alignItems: 'center' }}>
+            <Toggle
+              name="super_admin_only"
+              label=""
+              checked={superAdminOnly}
+              onChange={(checked) => handleToggleSuperAdminOnly(checked)}
+            />
+            <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Admin edit only</Text>
+          </Flex>
         )}
 
         {lastUpdated && (

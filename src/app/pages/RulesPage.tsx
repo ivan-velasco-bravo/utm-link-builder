@@ -6,7 +6,7 @@ import {
   Text,
   Alert,
   LoadingSpinner,
-  ToggleGroup,
+  Toggle,
   hubspot,
 } from '@hubspot/ui-extensions';
 import {
@@ -122,7 +122,7 @@ export const RulesPage = () => {
       ]);
 
       setIsAdmin(adminResult?.isAdmin === true);
-      if (adminResult?.debug) setError('DEBUG: ' + JSON.stringify(adminResult.debug));
+
 
       const config = configResult?.config;
       if (config) {
@@ -232,23 +232,12 @@ export const RulesPage = () => {
         </Text>
 
         {isAdmin && (
-          <Flex direction="row" gap="medium">
-            <ToggleGroup
-              name="super_admin_only"
-              label="Restrict editing"
-              options={[{ label: 'Super Admin only', value: 'superAdminOnly' }]}
-              value={superAdminOnly ? ['superAdminOnly'] : []}
-              onChange={(val) => handleToggleSuperAdminOnly(val.includes('superAdminOnly'))}
-            />
-            <Button
-              onClick={handleSync}
-              variant="secondary"
-              size="small"
-              disabled={syncing}
-            >
-              {syncing ? 'Syncing...' : 'Sync values from HubSpot'}
-            </Button>
-          </Flex>
+          <Toggle
+            name="super_admin_only"
+            label="Admin edit only"
+            checked={superAdminOnly}
+            onChange={(checked) => handleToggleSuperAdminOnly(checked)}
+          />
         )}
 
         {lastUpdated && (
@@ -264,23 +253,34 @@ export const RulesPage = () => {
         {error && <Alert title="Error" variant="error">{error}</Alert>}
         {saved && <Alert title="Saved!" variant="success">Rules updated successfully.</Alert>}
 
-        {editable && (
-          <Flex direction="row" gap="small" style={{ margin: "12px 0" }}>
+        <Flex direction="row" gap="small" style={{ margin: "12px 0" }}>
+          {editable && (
+            <>
+              <Button
+                onClick={() => { setMatrix(mapToState(DEFAULT_MAP, sources, mediums)); setDirty(true); setSaved(false); }}
+                variant="secondary"
+              >
+                Reset to defaults
+              </Button>
+              <Button
+                onClick={() => handleSave(editable)}
+                variant="primary"
+                disabled={saving || !dirty}
+              >
+                {saving ? 'Saving...' : 'Save changes'}
+              </Button>
+            </>
+          )}
+          {isAdmin && (
             <Button
-              onClick={() => { setMatrix(mapToState(DEFAULT_MAP, sources, mediums)); setDirty(true); setSaved(false); }}
+              onClick={handleSync}
               variant="secondary"
+              disabled={syncing || !editable}
             >
-              Reset to defaults
+              {syncing ? 'Syncing...' : 'Sync field values'}
             </Button>
-            <Button
-              onClick={() => handleSave(editable)}
-              variant="primary"
-              disabled={saving || !dirty}
-            >
-              {saving ? 'Saving...' : 'Save changes'}
-            </Button>
-          </Flex>
-        )}
+          )}
+        </Flex>
 
         <Flex direction="column" gap="extra-small">
           <Flex direction="row" gap="none">
@@ -326,23 +326,34 @@ export const RulesPage = () => {
           ))}
         </Flex>
 
-        {editable && (
-          <Flex direction="row" gap="small" style={{ margin: "12px 0" }}>
+        <Flex direction="row" gap="small" style={{ margin: "12px 0" }}>
+          {editable && (
+            <>
+              <Button
+                onClick={() => { setMatrix(mapToState(DEFAULT_MAP, sources, mediums)); setDirty(true); setSaved(false); }}
+                variant="secondary"
+              >
+                Reset to defaults
+              </Button>
+              <Button
+                onClick={() => handleSave(editable)}
+                variant="primary"
+                disabled={saving || !dirty}
+              >
+                {saving ? 'Saving...' : 'Save changes'}
+              </Button>
+            </>
+          )}
+          {isAdmin && (
             <Button
-              onClick={() => { setMatrix(mapToState(DEFAULT_MAP, sources, mediums)); setDirty(true); setSaved(false); }}
+              onClick={handleSync}
               variant="secondary"
+              disabled={syncing || !editable}
             >
-              Reset to defaults
+              {syncing ? 'Syncing...' : 'Sync field values'}
             </Button>
-            <Button
-              onClick={() => handleSave(editable)}
-              variant="primary"
-              disabled={saving || !dirty}
-            >
-              {saving ? 'Saving...' : 'Save changes'}
-            </Button>
-          </Flex>
-        )}
+          )}
+        </Flex>
       </Flex>
 
       <Text variant="microcopy"> </Text>

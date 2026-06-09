@@ -6,6 +6,7 @@ import {
   Text,
   Alert,
   LoadingSpinner,
+  Input,
   Textarea,
   hubspot,
 } from '@hubspot/ui-extensions';
@@ -294,8 +295,6 @@ export const DefinitionsPage = () => {
                         value={draft.params[p.key]?.description || ''}
                         onChange={(v) => updateDraftParam(p.key, 'description', v)}
                         placeholder="Description..."
-                      
-  rows={2}
 />
                     </Flex>
                   ) : (
@@ -343,8 +342,6 @@ export const DefinitionsPage = () => {
                           value={draft.sources[s.value] || ''}
                           onChange={(v) => updateDraftSource(s.value, v)}
                           placeholder="Describe this source..."
-                        
-  rows={2}
 />
                       </Flex>
                     ) : (
@@ -393,8 +390,6 @@ export const DefinitionsPage = () => {
                           value={draft.mediums[m.value] || ''}
                           onChange={(v) => updateDraftMedium(m.value, v)}
                           placeholder="Describe this medium..."
-                        
-  rows={2}
 />
                       </Flex>
                     ) : (

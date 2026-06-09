@@ -114,8 +114,10 @@ function toYearMonth(val: string): string {
 }
 
 function buildCampaignUtm(activationMonth: string, baseUtm: string): string {
-  if (!activationMonth || !baseUtm) return '';
-  return /^\d{4}-\d{2}[_-]/.test(baseUtm) ? baseUtm : `${activationMonth}_${baseUtm}`;
+  if (!baseUtm) return '';
+  if (!activationMonth) return baseUtm;
+  if (baseUtm.startsWith(`${activationMonth}-`)) return baseUtm;
+  return `${activationMonth}-${baseUtm.replace(/^\d{4}-\d{2}[_-]/, '')}`;
 }
 
 function toHubSpotDateValue(val: string): string {
@@ -148,6 +150,18 @@ interface CampaignOption {
   utm: string;
   startDate: string;
   activationMonth: string;
+}
+
+function getCampaignUtmWarning(campaign?: CampaignOption): string | null {
+  if (!campaign) return null;
+  if (!campaign.activationMonth) {
+    return 'Campaign Start Date is empty. Populate it on the related Campaign, then update the campaign UTM to follow YYYY-MM-Campaign_name using the campaign start month.';
+  }
+  if (!campaign.baseUtm.startsWith(`${campaign.activationMonth}-`)) {
+    const campaignName = campaign.baseUtm.replace(/^\d{4}-\d{2}[_-]/, '') || 'Campaign_name';
+    return `Campaign UTM should start with ${campaign.activationMonth}- based on the Campaign Start Date. Update the related Campaign UTM to ${campaign.activationMonth}-${campaignName}.`;
+  }
+  return null;
 }
 
 export const NewUtmBuilderPage = () => {
@@ -188,6 +202,9 @@ export const NewUtmBuilderPage = () => {
   const [topicSlugError, setTopicSlugError] = useState('');
   const [dateError, setDateError] = useState('');
   const [urlError, setUrlError] = useState('');
+
+  const selectedCampaign = campaignOptions.find(campaign => campaign.value === form.campaign_id);
+  const campaignUtmWarning = getCampaignUtmWarning(selectedCampaign);
 
   const selectedSource = form.use_source_website ? toWebsiteSource(form.source_website) : form.utm_source;
 
@@ -393,7 +410,7 @@ export const NewUtmBuilderPage = () => {
 
   const validate = (): boolean => {
     if (!form.campaign_id) { setError('Please select a campaign.'); return false; }
-    if (!form.campaign_activation_month) { setError('Selected campaign must have a Campaign Start Date to set the activation month.'); return false; }
+    if (!form.campaign_utm) { setError('Selected campaign must have a Campaign UTM value.'); return false; }
     if (!form.destination_url) { setError('Destination URL is required.'); return false; }
     if (!isValidUrl(form.destination_url)) { setError('Please enter a valid URL.'); return false; }
     if (!form.content_activation_date) { setError('Content Activation Date is required.'); return false; }
@@ -533,6 +550,11 @@ export const NewUtmBuilderPage = () => {
           <Select label="Campaign" name="campaign_id" value={form.campaign_id} onChange={handleCampaignChange} options={campaignOptions} placeholder="Search campaigns..." required />
           {form.campaign_activation_month && <Text format={{ fontWeight: 'demibold' }}>activation month: {form.campaign_activation_month}</Text>}
           {form.campaign_utm && <Text format={{ fontWeight: 'demibold' }}>utm_campaign: {form.campaign_utm}</Text>}
+          {campaignUtmWarning && (
+            <Alert title="Campaign UTM format warning" variant="warning">
+              {campaignUtmWarning}
+            </Alert>
+          )}
 
           <Divider />
 

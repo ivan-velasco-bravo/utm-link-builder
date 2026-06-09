@@ -162,8 +162,10 @@ function toDateInputValue(val: string): DateInputValue | null {
 }
 
 function buildCampaignUtm(activationMonth: string, baseUtm: string): string {
-  if (!activationMonth || !baseUtm) return '';
-  return /^\d{4}-\d{2}[_-]/.test(baseUtm) ? baseUtm : `${activationMonth}_${baseUtm}`;
+  if (!baseUtm) return '';
+  if (!activationMonth) return baseUtm;
+  if (baseUtm.startsWith(`${activationMonth}-`)) return baseUtm;
+  return `${activationMonth}-${baseUtm.replace(/^\d{4}-\d{2}[_-]/, '')}`;
 }
 
 function createEmptyRow(): LinkRow {
@@ -213,6 +215,18 @@ function buildTaggedUrl(row: LinkRow, campaignUtm: string): string {
   }
 }
 
+function getCampaignUtmWarning(campaign?: CampaignOption): string | null {
+  if (!campaign) return null;
+  if (!campaign.activationMonth) {
+    return 'Campaign Start Date is empty. Populate it on the related Campaign, then update the campaign UTM to follow YYYY-MM-Campaign_name using the campaign start month.';
+  }
+  if (!campaign.baseUtm.startsWith(`${campaign.activationMonth}-`)) {
+    const campaignName = campaign.baseUtm.replace(/^\d{4}-\d{2}[_-]/, '') || 'Campaign_name';
+    return `Campaign UTM should start with ${campaign.activationMonth}- based on the Campaign Start Date. Update the related Campaign UTM to ${campaign.activationMonth}-${campaignName}.`;
+  }
+  return null;
+}
+
 export const MassUtmBuilderPage = () => {
   const actions = useExtensionActions();
   const [loading, setLoading] = useState(true);
@@ -230,6 +244,9 @@ export const MassUtmBuilderPage = () => {
   const [campaignUtm, setCampaignUtm] = useState('');
   const [campaignActivationMonth, setCampaignActivationMonth] = useState('');
   const [rows, setRows] = useState<LinkRow[]>([createEmptyRow()]);
+
+  const selectedCampaign = campaignOptions.find(campaign => campaign.value === campaignId);
+  const campaignUtmWarning = getCampaignUtmWarning(selectedCampaign);
 
   useEffect(() => {
     loadStoredMap();
@@ -387,7 +404,7 @@ export const MassUtmBuilderPage = () => {
 
   const validateRows = (): string | null => {
     if (!campaignId) return 'Please select a campaign.';
-    if (!campaignActivationMonth) return 'Selected campaign must have a Campaign Start Date to set the activation month.';
+    if (!campaignUtm) return 'Selected campaign must have a Campaign UTM value.';
 
     for (let index = 0; index < rows.length; index += 1) {
       const row = rows[index];
@@ -481,6 +498,11 @@ export const MassUtmBuilderPage = () => {
         <Select label="Campaign" name="campaign_id" value={campaignId} onChange={value => handleCampaignChange(String(value))} options={campaignOptions} placeholder="Search campaigns..." required />
         {campaignActivationMonth && <Text format={{ fontWeight: 'demibold' }}>activation month: {campaignActivationMonth}</Text>}
         {campaignUtm && <Text format={{ fontWeight: 'demibold' }}>utm_campaign: {campaignUtm}</Text>}
+        {campaignUtmWarning && (
+          <Alert title="Campaign UTM format warning" variant="warning">
+            {campaignUtmWarning}
+          </Alert>
+        )}
 
         <Divider />
 

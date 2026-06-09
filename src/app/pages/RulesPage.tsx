@@ -3,6 +3,7 @@ import {
   Button,
   Divider,
   Flex,
+  Heading,
   Text,
   Alert,
   LoadingSpinner,
@@ -266,17 +267,14 @@ export const RulesPage = () => {
             )}
           </Flex>
           {isAdmin && (
-            <Flex direction="row" gap="small" style={{ alignItems: 'center' }}>
-              <Flex direction="column" gap="none" style={{ textAlign: 'right' }}>
-                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Lock Edit</Text>
-                <Text variant="microcopy">Only app editors will be able to make changes</Text>
-              </Flex>
+            <Flex direction="column" gap="none" style={{ alignItems: 'flex-end' }}>
               <Toggle
                 name="super_admin_only"
-                label=""
+                label={superAdminOnly ? 'Lock On' : 'Lock Off'}
                 checked={superAdminOnly}
                 onChange={(checked) => handleToggleSuperAdminOnly(checked)}
               />
+              <Text variant="microcopy">Only app editors will be able to make changes</Text>
             </Flex>
           )}
         </Flex>
@@ -340,8 +338,7 @@ export const RulesPage = () => {
         {/* Source definitions — read only */}
         {sources.length > 0 && (
           <Flex direction="column" gap="extra-small" style={{ paddingTop: "24px" }}>
-            <Divider />
-            <Text format={{ fontWeight: 'bold' }}>Source Definitions</Text>
+            <Heading>Source Definitions:</Heading>
             <Flex direction="row" gap="none" style={{ padding: '4px 4px' }}>
               <Flex style={{ minWidth: '160px', width: '160px' }}>
                 <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Label</Text>
@@ -370,8 +367,7 @@ export const RulesPage = () => {
         {/* Medium definitions — read only */}
         {mediums.length > 0 && (
           <Flex direction="column" gap="extra-small" style={{ paddingTop: "24px" }}>
-            <Divider />
-            <Text format={{ fontWeight: 'bold' }}>Medium Definitions</Text>
+            <Heading>Medium Definitions:</Heading>
             <Flex direction="row" gap="none" style={{ padding: '4px 4px' }}>
               <Flex style={{ minWidth: '160px', width: '160px' }}>
                 <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Label</Text>

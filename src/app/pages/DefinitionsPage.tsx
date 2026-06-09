@@ -7,7 +7,6 @@ import {
   Alert,
   LoadingSpinner,
   Input,
-  Textarea,
   hubspot,
 } from '@hubspot/ui-extensions';
 import {
@@ -289,14 +288,12 @@ export const DefinitionsPage = () => {
                 </Flex>
                 <Flex style={{ flex: 1 }}>
                   {editMode ? (
-                    <Flex style={editCellStyle}>
-                      <Textarea
+                    <Input
                         name={`param_desc_${p.key}`}
                         value={draft.params[p.key]?.description || ''}
                         onChange={(v) => updateDraftParam(p.key, 'description', v)}
                         placeholder="Description..."
 />
-                    </Flex>
                   ) : (
                     <Text variant="microcopy">{defs.params[p.key]?.description || p.description}</Text>
                   )}
@@ -336,14 +333,12 @@ export const DefinitionsPage = () => {
                   </Flex>
                   <Flex style={{ flex: 1 }}>
                     {editMode ? (
-                      <Flex style={editCellStyle}>
-                        <Textarea
+                      <Input
                           name={`source_${s.value}`}
                           value={draft.sources[s.value] || ''}
                           onChange={(v) => updateDraftSource(s.value, v)}
                           placeholder="Describe this source..."
 />
-                      </Flex>
                     ) : (
                       <Text variant="microcopy">{defs.sources[s.value] || '—'}</Text>
                     )}
@@ -384,14 +379,12 @@ export const DefinitionsPage = () => {
                   </Flex>
                   <Flex style={{ flex: 1 }}>
                     {editMode ? (
-                      <Flex style={editCellStyle}>
-                        <Textarea
+                      <Input
                           name={`medium_${m.value}`}
                           value={draft.mediums[m.value] || ''}
                           onChange={(v) => updateDraftMedium(m.value, v)}
                           placeholder="Describe this medium..."
 />
-                      </Flex>
                     ) : (
                       <Text variant="microcopy">{defs.mediums[m.value] || '—'}</Text>
                     )}

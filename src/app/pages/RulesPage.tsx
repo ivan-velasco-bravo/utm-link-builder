@@ -4,10 +4,12 @@ import {
   Divider,
   Flex,
   Heading,
+  Tag,
   Text,
   Alert,
   LoadingSpinner,
   Toggle,
+  Tooltip,
   hubspot,
 } from '@hubspot/ui-extensions';
 import {
@@ -274,7 +276,7 @@ export const RulesPage = () => {
                 checked={superAdminOnly}
                 onChange={(checked) => handleToggleSuperAdminOnly(checked)}
               />
-              <Text variant="microcopy" title="Only app editors will be able to make changes">ⓘ</Text>
+              <Tag overlay={<Tooltip>Only app editors will be able to make changes</Tooltip>}>i</Tag>
             </Flex>
           )}
         </Flex>

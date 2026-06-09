@@ -254,7 +254,7 @@ export const RulesPage = () => {
 
       <Flex direction="column" gap="medium">
         <Text variant="microcopy">
-          Source identifies the platform or technical enabler for the traffic — where you are posting or sending content. Medium describes the marketing method or channel type used to deliver that traffic.
+          Define which UTM Mediums are available for each UTM Source. When a source is selected on the Create UTM Link page, only its allowed mediums will appear. Use this page to configure those dependencies, then save to apply them across the app. Sync field values to pull the latest source and medium options from HubSpot.
         </Text>
 
         <Flex direction="row" gap="none" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
@@ -266,17 +266,17 @@ export const RulesPage = () => {
             )}
           </Flex>
           {isAdmin && (
-            <Flex direction="row" gap="extra-small" style={{ alignItems: 'center' }}>
-              <Flex direction="column" gap="none" style={{ textAlign: 'right' }}>
-                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Lock Edit</Text>
-                <Text variant="microcopy">Only app editors will be able to make changes</Text>
-              </Flex>
+            <Flex direction="row" gap="small" style={{ alignItems: 'center' }}>
               <Toggle
                 name="super_admin_only"
                 label=""
                 checked={superAdminOnly}
                 onChange={(checked) => handleToggleSuperAdminOnly(checked)}
               />
+              <Flex direction="column" gap="none" style={{ textAlign: 'right' }}>
+                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Lock Edit</Text>
+                <Text variant="microcopy">Only app editors will be able to make changes</Text>
+              </Flex>
             </Flex>
           )}
         </Flex>

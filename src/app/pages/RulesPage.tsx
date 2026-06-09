@@ -4,7 +4,7 @@ import {
   Divider,
   Flex,
   Heading,
-  Link,
+  Tag,
   Text,
   Alert,
   LoadingSpinner,
@@ -260,31 +260,36 @@ export const RulesPage = () => {
           Define which UTM Mediums are available for each UTM Source. When a source is selected on the Create UTM Link page, only its allowed mediums will appear. Use this page to configure those dependencies, then save to apply them across the app. Sync field values to pull the latest source and medium options from HubSpot.
         </Text>
 
-        <Flex direction="row" gap="small">
-          <Flex direction="column" gap="none" style={{ flex: 1 }}>
-            {lastUpdated && (
-              <Text variant="microcopy">
-                Last updated: {lastUpdated}{lastUpdatedBy ? ` by ${lastUpdatedBy}` : ''}
-              </Text>
-            )}
+        {lastUpdated && (
+          <Text variant="microcopy">
+            Last updated: {lastUpdated}{lastUpdatedBy ? ` by ${lastUpdatedBy}` : ''}
+          </Text>
+        )}
+        {isAdmin && (
+          <Flex direction="row" gap="extra-small">
+            <Text> </Text>
+            <Text> </Text>
+            <Text> </Text>
+            <Text> </Text>
+            <Text> </Text>
+            <Text> </Text>
+            <Text> </Text>
+            <Text> </Text>
+            <Text> </Text>
+            <Text> </Text>
+            <Text> </Text>
+            <Text> </Text>
+            <Text format={{ fontWeight: 'bold' }}>LOCK</Text>
+            <Tag overlay={<Tooltip>Only app editors will be able to make changes</Tooltip>}>ⓘ</Tag>
+            <Toggle
+              name="super_admin_only"
+              label=""
+              labelDisplay="hidden"
+              checked={superAdminOnly}
+              onChange={(checked) => handleToggleSuperAdminOnly(checked)}
+            />
           </Flex>
-          {isAdmin && (
-            <Flex direction="row" gap="extra-small" style={{ alignItems: 'center' }}>
-              <Text format={{ fontWeight: 'bold' }}>LOCK</Text>
-              <Link
-                href="#"
-                overlay={<Tooltip>Only app editors will be able to make changes</Tooltip>}
-              >ⓘ</Link>
-              <Toggle
-                name="super_admin_only"
-                label=""
-                labelDisplay="hidden"
-                checked={superAdminOnly}
-                onChange={(checked) => handleToggleSuperAdminOnly(checked)}
-              />
-            </Flex>
-          )}
-        </Flex>
+        )}
 
         {!editable && (
           <Alert title="View only" variant="warning">Editing is locked. Only app editors can make changes.</Alert>
@@ -358,7 +363,7 @@ export const RulesPage = () => {
             {sources.map(({ label, value }, i) => (
               <React.Fragment key={value}>
                 {i > 0 && <Divider />}
-                <Flex direction="row" gap="none" style={rowBg(i)}>
+                <Flex direction="row" gap="none" style={{ ...rowBg(i), alignItems: 'flex-start' }}>
                   <Flex style={{ minWidth: '160px', width: '160px' }}>
                     <Text format={{ fontWeight: 'demibold' }}>{label}</Text>
                   </Flex>
@@ -387,7 +392,7 @@ export const RulesPage = () => {
             {mediums.map(({ label, value }, i) => (
               <React.Fragment key={value}>
                 {i > 0 && <Divider />}
-                <Flex direction="row" gap="none" style={rowBg(i)}>
+                <Flex direction="row" gap="none" style={{ ...rowBg(i), alignItems: 'flex-start' }}>
                   <Flex style={{ minWidth: '160px', width: '160px' }}>
                     <Text format={{ fontWeight: 'demibold' }}>{label}</Text>
                   </Flex>

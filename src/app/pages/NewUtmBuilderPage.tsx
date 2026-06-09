@@ -46,7 +46,82 @@ function normalizeUrl(val: string): string {
   return val.startsWith('http') ? val : 'https://' + val;
 }
 
-export const HomePage = () => {
+function pad2(val: number): string {
+  return String(val).padStart(2, '0');
+}
+
+function getTodayDate(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+}
+
+function parseDateParts(val: string): { year: number; month: number; day: number } | null {
+  if (!val) return null;
+
+  const dateMatch = val.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (dateMatch) {
+    return {
+      year: Number(dateMatch[1]),
+      month: Number(dateMatch[2]),
+      day: Number(dateMatch[3]),
+    };
+  }
+
+  const timestamp = /^\d+$/.test(val) ? Number(val) : Date.parse(val);
+  if (Number.isNaN(timestamp)) return null;
+
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return {
+    year: date.getUTCFullYear(),
+    month: date.getUTCMonth() + 1,
+    day: date.getUTCDate(),
+  };
+}
+
+function isValidDate(val: string): boolean {
+  const parts = parseDateParts(val);
+  if (!parts) return false;
+
+  const date = new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
+  return (
+    date.getUTCFullYear() === parts.year &&
+    date.getUTCMonth() + 1 === parts.month &&
+    date.getUTCDate() === parts.day
+  );
+}
+
+function isValidIsoDate(val: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(val) && isValidDate(val);
+}
+
+function toYearMonth(val: string): string {
+  const parts = parseDateParts(val);
+  return parts ? `${parts.year}-${pad2(parts.month)}` : '';
+}
+
+function buildCampaignUtm(activationMonth: string, baseUtm: string): string {
+  if (!activationMonth || !baseUtm) return '';
+  return /^\d{4}-\d{2}[_-]/.test(baseUtm) ? baseUtm : `${activationMonth}_${baseUtm}`;
+}
+
+function toHubSpotDateValue(val: string): string {
+  const parts = parseDateParts(val);
+  if (!parts) return '';
+  return String(Date.UTC(parts.year, parts.month - 1, parts.day));
+}
+
+interface CampaignOption {
+  label: string;
+  value: string;
+  baseUtm: string;
+  utm: string;
+  startDate: string;
+  activationMonth: string;
+}
+
+export const NewUtmBuilderPage = () => {
   const actions = useExtensionActions();
   const [loading, setLoading] = useState(true);
   const [sourceMediumMap, setSourceMediumMap] = useState<Record<string, string[]>>(DEFAULT_MAP);
@@ -58,7 +133,7 @@ export const HomePage = () => {
   const [sourceOptions, setSourceOptions] = useState<{label: string, value: string}[]>([]);
   const [mediumOptions, setMediumOptions] = useState<{label: string, value: string}[]>([]);
   const [placementOptions, setPlacementOptions] = useState<{label: string, value: string}[]>([]);
-  const [campaignOptions, setCampaignOptions] = useState<{label: string, value: string, utm: string}[]>([]);
+  const [campaignOptions, setCampaignOptions] = useState<CampaignOption[]>([]);
   const [userOptions, setUserOptions] = useState<{label: string, value: string}[]>([]);
 
   const [salesAgentMode, setSalesAgentMode] = useState(false);
@@ -67,28 +142,34 @@ export const HomePage = () => {
   const [form, setForm] = useState({
     campaign_id: '',
     campaign_utm: '',
+    campaign_activation_month: '',
     destination_url: '',
+    content_activation_date: getTodayDate(),
     utm_source: '',
     utm_medium: '',
     content_piece_name: '',
+    utm_topic: '',
     link_placement: '',
     utm_term: '',
   });
 
   const [slugError, setSlugError] = useState('');
+  const [topicSlugError, setTopicSlugError] = useState('');
+  const [dateError, setDateError] = useState('');
   const [urlError, setUrlError] = useState('');
 
   const filteredMediumOptions = form.utm_source && sourceMediumMap[form.utm_source]
     ? mediumOptions.filter(o => sourceMediumMap[form.utm_source].includes(o.value))
     : mediumOptions;
 
-  const utmContent = form.content_piece_name
-    ? form.content_piece_name + (form.link_placement ? '_' + form.link_placement : '')
+  const utmContent = form.content_activation_date && form.content_piece_name
+    ? `${form.content_activation_date}_${form.content_piece_name}${form.link_placement ? '_' + form.link_placement : ''}`
     : '';
 
   const taggedUrl = (() => {
-    if (!form.destination_url || !form.utm_source || !form.utm_medium || !form.campaign_utm || !utmContent) return '';
+    if (!form.destination_url || !form.utm_source || !form.utm_medium || !form.campaign_utm || !utmContent || !form.utm_topic) return '';
     if (!isValidUrl(form.destination_url)) return '';
+    if (!isValidIsoDate(form.content_activation_date)) return '';
     try {
       const url = new URL(normalizeUrl(form.destination_url));
       url.searchParams.set('utm_source', form.utm_source);
@@ -96,6 +177,7 @@ export const HomePage = () => {
       url.searchParams.set('utm_campaign', form.campaign_utm);
       url.searchParams.set('utm_content', utmContent);
       if (form.utm_term) url.searchParams.set('utm_term', form.utm_term);
+      url.searchParams.set('utm_topic', form.utm_topic);
       return url.toString();
     } catch { return ''; }
   })();
@@ -141,7 +223,7 @@ export const HomePage = () => {
         ...optionsData.placementOptions.map((o: any) => ({ label: o.label, value: o.value }))
       ]);
 
-      const campaignsData = await callFn('getCampaigns');
+      const campaignsData = await callFn('getCampaignsWithStartDate');
       if (campaignsData.error) throw new Error(`Campaigns error: ${campaignsData.error}`);
 
       // Filter out completed campaigns
@@ -153,7 +235,13 @@ export const HomePage = () => {
         .map((c: any) => ({
           label: c.properties?.hs_name || `Campaign ${c.id}`,
           value: c.id,
-          utm: decodeURIComponent(c.properties?.hs_utm || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-_]+/g, '').replace(/^-|-$/g, ''),
+          baseUtm: decodeURIComponent(c.properties?.hs_utm || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-_]+/g, '').replace(/^-|-$/g, ''),
+          startDate: c.campaignStartDate || '',
+          activationMonth: toYearMonth(c.campaignStartDate || ''),
+        }))
+        .map((c: CampaignOption) => ({
+          ...c,
+          utm: buildCampaignUtm(c.activationMonth, c.baseUtm),
         }));
       setCampaignOptions(campaigns);
 
@@ -185,7 +273,23 @@ export const HomePage = () => {
 
   const handleCampaignChange = (val: string) => {
     const campaign = campaignOptions.find(c => c.value === val);
-    setForm(prev => ({ ...prev, campaign_id: val, campaign_utm: campaign?.utm || '' }));
+    setForm(prev => ({
+      ...prev,
+      campaign_id: val,
+      campaign_utm: campaign?.utm || '',
+      campaign_activation_month: campaign?.activationMonth || '',
+    }));
+    setSuccess(false);
+    setError(null);
+  };
+
+  const handleDateChange = (val: string) => {
+    setForm(prev => ({ ...prev, content_activation_date: val }));
+    if (val && !isValidIsoDate(val)) {
+      setDateError('Use a valid date in YYYY-MM-DD format.');
+    } else {
+      setDateError('');
+    }
     setSuccess(false);
     setError(null);
   };
@@ -212,9 +316,14 @@ export const HomePage = () => {
         return;
       }
     }
-    if (field === 'content_piece_name') {
+    if (field === 'content_piece_name' || field === 'utm_topic') {
       const slugged = toSlug(value);
-      setSlugError(slugged && !isValidSlug(slugged) ? 'Lowercase letters, numbers, hyphens and underscores only.' : '');
+      const nextError = slugged && !isValidSlug(slugged) ? 'Lowercase letters, numbers, hyphens and underscores only.' : '';
+      if (field === 'content_piece_name') {
+        setSlugError(nextError);
+      } else {
+        setTopicSlugError(nextError);
+      }
       setForm(prev => ({ ...prev, [field]: slugged }));
     } else {
       setForm(prev => ({ ...prev, [field]: value }));
@@ -232,12 +341,17 @@ export const HomePage = () => {
 
   const validate = (): boolean => {
     if (!form.campaign_id) { setError('Please select a campaign.'); return false; }
+    if (!form.campaign_activation_month) { setError('Selected campaign must have a Campaign Start Date to set the activation month.'); return false; }
     if (!form.destination_url) { setError('Destination URL is required.'); return false; }
     if (!isValidUrl(form.destination_url)) { setError('Please enter a valid URL.'); return false; }
+    if (!form.content_activation_date) { setError('Content Activation Date is required.'); return false; }
+    if (!isValidIsoDate(form.content_activation_date)) { setError('Content Activation Date must use YYYY-MM-DD.'); return false; }
     if (!form.utm_source) { setError('UTM Source is required.'); return false; }
     if (!form.utm_medium) { setError('UTM Medium is required.'); return false; }
     if (!form.content_piece_name) { setError('Content Piece Name is required.'); return false; }
     if (!isValidSlug(form.content_piece_name)) { setError('Content Piece Name must be lowercase with no spaces.'); return false; }
+    if (!form.utm_topic) { setError('UTM Topic is required.'); return false; }
+    if (!isValidSlug(form.utm_topic)) { setError('UTM Topic must be lowercase with no spaces.'); return false; }
     return true;
   };
 
@@ -250,10 +364,12 @@ export const HomePage = () => {
       const properties: Record<string, string> = {
         content_piece_name: form.content_piece_name,
         destination_url: destUrl,
+        content_activation_date: toHubSpotDateValue(form.content_activation_date),
         utm_source: form.utm_source,
         utm_medium: form.utm_medium,
         utm_campaign: form.campaign_utm,
         utm_content: utmContent,
+        utm_topic: form.utm_topic,
         tagged_url: taggedUrl,
       };
       if (form.link_placement) properties.link_placement = form.link_placement;
@@ -267,10 +383,13 @@ export const HomePage = () => {
       setForm(prev => ({
         campaign_id: prev.campaign_id,
         campaign_utm: prev.campaign_utm,
+        campaign_activation_month: prev.campaign_activation_month,
         destination_url: '',
+        content_activation_date: getTodayDate(),
         utm_source: '',
         utm_medium: '',
         content_piece_name: '',
+        utm_topic: '',
         link_placement: '',
         utm_term: '',
       }));
@@ -298,11 +417,25 @@ export const HomePage = () => {
   };
 
   const handleReset = () => {
-    setForm({ campaign_id: '', campaign_utm: '', destination_url: '', utm_source: '', utm_medium: '', content_piece_name: '', link_placement: '', utm_term: '' });
+    setForm({
+      campaign_id: '',
+      campaign_utm: '',
+      campaign_activation_month: '',
+      destination_url: '',
+      content_activation_date: getTodayDate(),
+      utm_source: '',
+      utm_medium: '',
+      content_piece_name: '',
+      utm_topic: '',
+      link_placement: '',
+      utm_term: '',
+    });
     setError(null);
     setSuccess(false);
     setCreatedId(null);
     setSlugError('');
+    setTopicSlugError('');
+    setDateError('');
     setUrlError('');
     setSalesAgentMode(false);
   };
@@ -316,9 +449,9 @@ export const HomePage = () => {
   return (
     <>
       <PageBreadcrumbs>
-        <PageBreadcrumbs.Current>UTM Builder</PageBreadcrumbs.Current>
+        <PageBreadcrumbs.Current>New UTM Builder</PageBreadcrumbs.Current>
       </PageBreadcrumbs>
-      <PageTitle>Create UTM Link</PageTitle>
+      <PageTitle>New UTM Builder</PageTitle>
 
       <Flex direction="row" gap="large">
 
@@ -336,6 +469,7 @@ export const HomePage = () => {
           )}
 
           <Select label="Campaign" name="campaign_id" value={form.campaign_id} onChange={handleCampaignChange} options={campaignOptions} placeholder="Search campaigns..." required />
+          {form.campaign_activation_month && <Text format={{ fontWeight: 'demibold' }}>activation month: {form.campaign_activation_month}</Text>}
           {form.campaign_utm && <Text format={{ fontWeight: 'demibold' }}>utm_campaign: {form.campaign_utm}</Text>}
 
           <Divider />
@@ -358,7 +492,20 @@ export const HomePage = () => {
             <Select label="UTM Medium" name="utm_medium" value={form.utm_medium} onChange={val => handleChange('utm_medium', val)} options={filteredMediumOptions} placeholder={form.utm_source ? "Select medium..." : "Select source first..."} required />
           </Flex>
 
+          <Input
+            label="Content Activation Date"
+            name="content_activation_date"
+            value={form.content_activation_date}
+            onChange={handleDateChange}
+            placeholder="YYYY-MM-DD"
+            required
+            error={!!dateError}
+            validationMessage={dateError || 'Used as the date prefix for utm_content.'}
+          />
+
           <Input label="Content Piece Name" name="content_piece_name" value={form.content_piece_name} onChange={val => handleChange('content_piece_name', val)} placeholder="e.g. q3-brand-video" required error={!!slugError} validationMessage={slugError || 'Lowercase, no spaces. Combined with placement to form utm_content.'} />
+
+          <Input label="UTM Topic" name="utm_topic" value={form.utm_topic} onChange={val => handleChange('utm_topic', val)} placeholder="e.g. model-theme" required error={!!topicSlugError} validationMessage={topicSlugError || 'Lowercase, no spaces.'} />
 
           <Select label="Link Placement" name="link_placement" value={form.link_placement} onChange={val => handleChange('link_placement', val)} options={placementOptions} placeholder="Select placement..." />
 
@@ -399,6 +546,8 @@ export const HomePage = () => {
             <Text variant="microcopy">{utmContent || '—'}</Text>
             <Text format={{ fontWeight: 'demibold' }}>utm_term</Text>
             <Text variant="microcopy">{form.utm_term || '—'}</Text>
+            <Text format={{ fontWeight: 'demibold' }}>utm_topic</Text>
+            <Text variant="microcopy">{form.utm_topic || '—'}</Text>
           </Flex>
 
           <Divider />

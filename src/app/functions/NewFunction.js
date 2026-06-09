@@ -23,6 +23,29 @@ function apiRequest(method, path, body, token) {
   });
 }
 
+function findCampaignStartDateProperty(properties) {
+  const byName = new Map((properties || []).map(p => [p.name, p]));
+  const preferredNames = [
+    'hs_start_date',
+    'hs_campaign_start_date',
+    'campaign_start_date',
+    'start_date',
+  ];
+
+  for (const name of preferredNames) {
+    if (byName.has(name)) return name;
+  }
+
+  const exactLabel = (properties || []).find(p => (p.label || '').toLowerCase() === 'campaign start date');
+  if (exactLabel) return exactLabel.name;
+
+  const startDate = (properties || []).find(p => {
+    const label = (p.label || '').toLowerCase();
+    return label.includes('start date') && (p.type === 'date' || p.type === 'datetime');
+  });
+  return startDate?.name || null;
+}
+
 // Get the single 'current' config row from HubDB
 async function getConfigRow(token) {
   const r = await apiRequest('GET', `/cms/v3/hubdb/tables/${HUBDB_TABLE_ID}/rows/draft?limit=50`, null, token);
@@ -199,6 +222,32 @@ exports.main = async (context) => {
         }, token);
         if (r.status !== 200) return { error: `Campaigns API ${r.status}: ${JSON.stringify(r.data)}`, campaigns: [] };
         return { campaigns: r.data.results || [] };
+      }
+
+      // Get campaigns with Campaign Start Date (used by NewUtmBuilderPage)
+      case 'getCampaignsWithStartDate': {
+        const props = await apiRequest('GET', '/crm/v3/properties/0-35?archived=false', null, token);
+        const campaignStartDateProperty = props.status === 200
+          ? findCampaignStartDateProperty(props.data.results || [])
+          : null;
+        const properties = ['hs_name', 'hs_utm', 'hs_campaign_status'];
+        if (campaignStartDateProperty) properties.push(campaignStartDateProperty);
+
+        const r = await apiRequest('POST', '/crm/v3/objects/0-35/search', {
+          properties,
+          limit: 100,
+          sorts: [{ propertyName: 'hs_name', direction: 'ASCENDING' }]
+        }, token);
+        if (r.status !== 200) return { error: `Campaigns API ${r.status}: ${JSON.stringify(r.data)}`, campaigns: [] };
+        return {
+          campaigns: (r.data.results || []).map(campaign => ({
+            ...campaign,
+            campaignStartDate: campaignStartDateProperty
+              ? campaign.properties?.[campaignStartDateProperty] || ''
+              : '',
+          })),
+          campaignStartDateProperty,
+        };
       }
 
       // Get users

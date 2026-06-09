@@ -12,11 +12,10 @@ import {
 import {
   PageBreadcrumbs,
   PageTitle,
-  PageLink,
 } from '@hubspot/ui-extensions/pages';
 import { useState, useEffect } from 'react';
 
-// Fallback arrays if HubSpot property options are unavailable
+// Fallback field values if HubDB has no synced values yet
 const DEFAULT_SOURCES = [
   { label: 'LinkedIn', value: 'linkedin' },
   { label: 'Instagram', value: 'instagram' },
@@ -69,11 +68,10 @@ export const DEFAULT_MAP: Record<string, string[]> = {
   offline:   ['qr', 'print', 'event'],
 };
 
-export const STORAGE_KEY = 'utm_source_medium_map';
-
+type FieldOption = { label: string; value: string };
 type MapState = Record<string, Record<string, boolean>>;
 
-function mapToState(map: Record<string, string[]>, srcs = DEFAULT_SOURCES, meds = DEFAULT_MEDIUMS): MapState {
+function mapToState(map: Record<string, string[]>, srcs: FieldOption[], meds: FieldOption[]): MapState {
   const state: MapState = {};
   for (const src of srcs) {
     state[src.value] = {};
@@ -84,7 +82,7 @@ function mapToState(map: Record<string, string[]>, srcs = DEFAULT_SOURCES, meds 
   return state;
 }
 
-function stateToMap(state: MapState, srcs: {label: string, value: string}[], meds: {label: string, value: string}[]): Record<string, string[]> {
+function stateToMap(state: MapState, srcs: FieldOption[], meds: FieldOption[]): Record<string, string[]> {
   const map: Record<string, string[]> = {};
   for (const src of srcs) {
     map[src.value] = meds.filter(med => state[src.value]?.[med.value]).map(med => med.value);
@@ -96,14 +94,17 @@ export const RulesPage = () => {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [matrix, setMatrix] = useState<MapState>({});
   const [dirty, setDirty] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [superAdminOnly, setSuperAdminOnly] = useState(false);
-  const [sources, setSources] = useState<{label: string, value: string}[]>([]);
-  const [mediums, setMediums] = useState<{label: string, value: string}[]>([]);
+  const [sources, setSources] = useState<FieldOption[]>([]);
+  const [mediums, setMediums] = useState<FieldOption[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [lastUpdatedBy, setLastUpdatedBy] = useState<string | null>(null);
 
   useEffect(() => { loadAll(); }, []);
 
@@ -114,19 +115,41 @@ export const RulesPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const [mapResult, adminResult, settingResult, optionsResult] = await Promise.all([
-        callFn('getMap'),
+      const [configResult, adminResult] = await Promise.all([
+        callFn('getConfig'),
         callFn('checkAdmin'),
-        callFn('getSetting', { key: 'superAdminOnly' }),
-        callFn('getOptions'),
       ]);
+
       setIsAdmin(adminResult?.isAdmin === true);
-      setSuperAdminOnly(settingResult?.value === 'true');
-      const liveSources = (optionsResult?.sourceOptions || []).map((o: any) => ({ label: o.label, value: o.value }));
-      const liveMediums = (optionsResult?.mediumOptions || []).map((o: any) => ({ label: o.label, value: o.value }));
-      setSources(liveSources.length > 0 ? liveSources : DEFAULT_SOURCES);
-      setMediums(liveMediums.length > 0 ? liveMediums : DEFAULT_MEDIUMS);
-      setMatrix(mapToState(mapResult?.map || DEFAULT_MAP, liveSources.length > 0 ? liveSources : DEFAULT_SOURCES, liveMediums.length > 0 ? liveMediums : DEFAULT_MEDIUMS));
+
+      const config = configResult?.config;
+      if (config) {
+        setSuperAdminOnly(config.superAdminOnly === true);
+
+        // Use synced field values from HubDB, fall back to defaults
+        const liveSources = config.fieldValues?.sources?.length > 0
+          ? config.fieldValues.sources
+          : DEFAULT_SOURCES;
+        const liveMediums = config.fieldValues?.mediums?.length > 0
+          ? config.fieldValues.mediums
+          : DEFAULT_MEDIUMS;
+        setSources(liveSources);
+        setMediums(liveMediums);
+
+        // Use saved map or default
+        const map = config.sourcesMediumsMap || DEFAULT_MAP;
+        setMatrix(mapToState(map, liveSources, liveMediums));
+
+        // Audit info
+        if (config.lastUpdatedDatetime) {
+          setLastUpdated(new Date(config.lastUpdatedDatetime).toLocaleString());
+        }
+        setLastUpdatedBy(config.lastUpdatedByUser || null);
+      } else {
+        setSources(DEFAULT_SOURCES);
+        setMediums(DEFAULT_MEDIUMS);
+        setMatrix(mapToState(DEFAULT_MAP, DEFAULT_SOURCES, DEFAULT_MEDIUMS));
+      }
     } catch (e) {
       setSources(DEFAULT_SOURCES);
       setMediums(DEFAULT_MEDIUMS);
@@ -151,10 +174,12 @@ export const RulesPage = () => {
     setSaving(true);
     setError(null);
     try {
-      const result = await callFn('setMap', { map: stateToMap(matrix, sources, mediums) });
+      const result = await callFn('saveMap', { map: stateToMap(matrix, sources, mediums) });
       if (result?.error) throw new Error(result.error);
       setSaved(true);
       setDirty(false);
+      // Reload to get updated audit fields
+      await loadAll();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save.');
     } finally {
@@ -166,13 +191,29 @@ export const RulesPage = () => {
     if (!isAdmin) return;
     setSuperAdminOnly(newVal);
     try {
-      await callFn('setSetting', { key: 'superAdminOnly', value: newVal ? 'true' : 'false' });
+      const result = await callFn('saveSetting', { superAdminOnly: newVal });
+      if (result?.error) throw new Error(result.error);
     } catch (e) {
       setError('Failed to update setting.');
     }
   };
 
-  if (loading) return <LoadingSpinner label="Loading rules..." />;
+  const handleSync = async () => {
+    if (!isAdmin) return;
+    setSyncing(true);
+    setError(null);
+    try {
+      const result = await callFn('syncFieldValues');
+      if (result?.error) throw new Error(result.error);
+      await loadAll();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to sync.');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  if (loading) return <LoadingSpinner label="Loading..." />;
 
   const editable = !superAdminOnly || isAdmin;
 
@@ -189,13 +230,29 @@ export const RulesPage = () => {
         </Text>
 
         {isAdmin && (
-          <ToggleGroup
-            name="super_admin_only"
-            label="Restrict editing"
-            options={[{ label: 'Super Admin only', value: 'superAdminOnly' }]}
-            value={superAdminOnly ? ['superAdminOnly'] : []}
-            onChange={(val) => handleToggleSuperAdminOnly(val.includes('superAdminOnly'))}
-          />
+          <Flex direction="row" gap="medium">
+            <ToggleGroup
+              name="super_admin_only"
+              label="Restrict editing"
+              options={[{ label: 'Super Admin only', value: 'superAdminOnly' }]}
+              value={superAdminOnly ? ['superAdminOnly'] : []}
+              onChange={(val) => handleToggleSuperAdminOnly(val.includes('superAdminOnly'))}
+            />
+            <Button
+              onClick={handleSync}
+              variant="secondary"
+              size="small"
+              disabled={syncing}
+            >
+              {syncing ? 'Syncing...' : 'Sync values from HubSpot'}
+            </Button>
+          </Flex>
+        )}
+
+        {lastUpdated && (
+          <Text variant="microcopy">
+            Last updated: {lastUpdated}{lastUpdatedBy ? ` by ${lastUpdatedBy}` : ''}
+          </Text>
         )}
 
         {!editable && (
@@ -207,10 +264,17 @@ export const RulesPage = () => {
 
         {editable && (
           <Flex direction="row" gap="small" style={{ margin: "12px 0" }}>
-            <Button onClick={() => { setMatrix(mapToState(DEFAULT_MAP, sources, mediums)); setDirty(true); setSaved(false); }} variant="secondary">
+            <Button
+              onClick={() => { setMatrix(mapToState(DEFAULT_MAP, sources, mediums)); setDirty(true); setSaved(false); }}
+              variant="secondary"
+            >
               Reset to defaults
             </Button>
-            <Button onClick={() => handleSave(editable)} variant="primary" disabled={saving || !dirty}>
+            <Button
+              onClick={() => handleSave(editable)}
+              variant="primary"
+              disabled={saving || !dirty}
+            >
               {saving ? 'Saving...' : 'Save changes'}
             </Button>
           </Flex>
@@ -238,34 +302,41 @@ export const RulesPage = () => {
 
           {mediums.map((med, i) => (
             <React.Fragment key={med.value}>
-            {i > 0 && <Divider />}
-            <Flex direction="row" gap="none">
-              <Flex direction="column" gap="none" style={{ minWidth: '110px', width: '110px' }}>
-                <Text variant="microcopy">{med.label}</Text>
-              </Flex>
-              {sources.map(src => (
-                <Flex key={src.value} direction="column" gap="none" style={{ minWidth: '68px', width: '68px', alignItems: 'center' }}>
-                  <Button
-                    onClick={() => toggle(src.value, med.value, editable)}
-                    variant={matrix[src.value]?.[med.value] ? 'primary' : 'secondary'}
-                    size="xs"
-                    disabled={!editable}
-                  >
-                    {matrix[src.value]?.[med.value] ? '✓' : '·'}
-                  </Button>
+              {i > 0 && <Divider />}
+              <Flex direction="row" gap="none">
+                <Flex direction="column" gap="none" style={{ minWidth: '110px', width: '110px' }}>
+                  <Text variant="microcopy">{med.label}</Text>
                 </Flex>
-              ))}
-            </Flex>
+                {sources.map(src => (
+                  <Flex key={src.value} direction="column" gap="none" style={{ minWidth: '68px', width: '68px', alignItems: 'center' }}>
+                    <Button
+                      onClick={() => toggle(src.value, med.value, editable)}
+                      variant={matrix[src.value]?.[med.value] ? 'primary' : 'secondary'}
+                      size="xs"
+                      disabled={!editable}
+                    >
+                      {matrix[src.value]?.[med.value] ? '✓' : '·'}
+                    </Button>
+                  </Flex>
+                ))}
+              </Flex>
             </React.Fragment>
           ))}
         </Flex>
 
         {editable && (
           <Flex direction="row" gap="small" style={{ margin: "12px 0" }}>
-            <Button onClick={() => { setMatrix(mapToState(DEFAULT_MAP, sources, mediums)); setDirty(true); setSaved(false); }} variant="secondary">
+            <Button
+              onClick={() => { setMatrix(mapToState(DEFAULT_MAP, sources, mediums)); setDirty(true); setSaved(false); }}
+              variant="secondary"
+            >
               Reset to defaults
             </Button>
-            <Button onClick={() => handleSave(editable)} variant="primary" disabled={saving || !dirty}>
+            <Button
+              onClick={() => handleSave(editable)}
+              variant="primary"
+              disabled={saving || !dirty}
+            >
               {saving ? 'Saving...' : 'Save changes'}
             </Button>
           </Flex>
@@ -275,37 +346,20 @@ export const RulesPage = () => {
       <Text variant="microcopy"> </Text>
       <Text variant="microcopy"> </Text>
       <Text variant="microcopy"> </Text>
+
       <Flex direction="column" gap="small">
         <Text format={{ fontWeight: 'bold' }}>Medium Definitions</Text>
-        {[
-          { key: 'paid-social',    label: 'Paid social',          desc: 'Paid ads on social media platforms (boosted posts, sponsored content, social ad campaigns).' },
-          { key: 'organic-social', label: 'Organic social',       desc: 'Unpaid posts, shares, or links shared on social media profiles or pages.' },
-          { key: 'influencer',     label: 'Influencer campaigns', desc: 'Content distributed through influencer or creator partnerships on social platforms.' },
-          { key: 'retargeting',    label: 'Retargeting',          desc: 'Paid ads shown to users who have previously visited your site or engaged with your content.' },
-          { key: 'mkt-emails',     label: 'Marketing emails',     desc: 'Bulk or automated marketing emails sent to lists (newsletters, nurture sequences, promotional blasts).' },
-          { key: 'sales-emails',   label: 'Sales emails',         desc: '1:1 or sequenced outreach emails sent by sales reps to prospects or customers.' },
-          { key: 'sms',            label: 'SMS',                  desc: 'Text message campaigns sent to opted-in contacts.' },
-          { key: 'push',           label: 'Push notifications',   desc: 'Browser or app push notifications sent to subscribed users.' },
-          { key: 'referral',       label: 'Referral traffic',     desc: 'Traffic driven by links on third-party websites, directories, or partner pages (non-paid).' },
-          { key: 'affiliate',      label: 'Affiliate traffic',    desc: 'Traffic driven by affiliate partners who earn commission on conversions.' },
-          { key: 'paid-search',    label: 'Paid search',          desc: 'Pay-per-click ads on search engines (Google Ads, Bing Ads).' },
-          { key: 'display',        label: 'Banner / display',     desc: 'Visual display ads served on websites, apps, or ad networks (not search).' },
-          { key: 'video',          label: 'Video campaigns',      desc: 'Video ads served on platforms like YouTube, connected TV, or programmatic video networks.' },
-          { key: 'qr',             label: 'QR code',              desc: 'Links accessed by scanning a physical QR code (print, packaging, signage, events).' },
-          { key: 'print',          label: 'Print',                desc: 'Links appearing in printed materials (magazines, flyers, direct mail, brochures).' },
-          { key: 'webinar',        label: 'Webinars',             desc: 'Links shared during or promoting a live or recorded webinar session.' },
-          { key: 'event',          label: 'Events',               desc: 'Links associated with in-person or virtual events (conferences, trade shows, meetups).' },
-        ].map(({ key, label, desc }, i) => (
-          <React.Fragment key={key}>
-          {i > 0 && <Divider />}
-          <Flex direction="row" gap="small" style={{ padding: '6px 4px' }}>
-            <Flex style={{ minWidth: '140px', width: '140px' }}>
-              <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>{label}</Text>
+        {mediums.map(({ label, value }, i) => (
+          <React.Fragment key={value}>
+            {i > 0 && <Divider />}
+            <Flex direction="row" gap="small" style={{ padding: '6px 4px' }}>
+              <Flex style={{ minWidth: '140px', width: '140px' }}>
+                <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>{label}</Text>
+              </Flex>
+              <Flex style={{ flex: 1 }}>
+                <Text variant="microcopy">—</Text>
+              </Flex>
             </Flex>
-            <Flex style={{ flex: 1 }}>
-              <Text variant="microcopy">{desc}</Text>
-            </Flex>
-          </Flex>
           </React.Fragment>
         ))}
       </Flex>

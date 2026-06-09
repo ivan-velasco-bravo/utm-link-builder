@@ -10,6 +10,7 @@ import {
   Select,
   Text,
   hubspot,
+  useExtensionActions,
 } from '@hubspot/ui-extensions';
 import {
   PageBreadcrumbs,
@@ -213,6 +214,7 @@ function buildTaggedUrl(row: LinkRow, campaignUtm: string): string {
 }
 
 export const MassUtmBuilderPage = () => {
+  const actions = useExtensionActions();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [sourceMediumMap, setSourceMediumMap] = useState<Record<string, string[]>>(DEFAULT_MAP);
@@ -457,6 +459,12 @@ export const MassUtmBuilderPage = () => {
     }
   };
 
+  const handleCopyTaggedUrl = (taggedUrl: string) => {
+    if (!taggedUrl) return;
+    actions.copyTextToClipboard(taggedUrl);
+    actions.addAlert({ type: 'SUCCESS', message: 'Tagged URL copied to clipboard!' });
+  };
+
   if (loading) return <LoadingSpinner label="Loading Mass UTM Builder..." />;
 
   return (
@@ -495,23 +503,36 @@ export const MassUtmBuilderPage = () => {
                 <Button onClick={() => removeRow(row.id)} variant="secondary">Remove</Button>
               </Flex>
 
-              <Input
-                label="Destination URL"
-                name={`destination_url_${row.id}`}
-                value={row.destination_url}
-                onChange={value => handleRowChange(row.id, 'destination_url', value)}
-                placeholder="runware.ai/pricing"
-                required
-              />
+              <Flex direction="row" gap="small">
+                <Checkbox
+                  name={`website_source_${row.id}`}
+                  value="website_source"
+                  checked={row.use_source_website}
+                  onChange={checked => handleWebsiteSourceToggle(row.id, checked)}
+                >
+                  Website Source
+                </Checkbox>
+                <Input
+                  label="Destination URL"
+                  name={`destination_url_${row.id}`}
+                  value={row.destination_url}
+                  onChange={value => handleRowChange(row.id, 'destination_url', value)}
+                  placeholder="runware.ai/pricing"
+                  required
+                />
+              </Flex>
 
-              <Checkbox
-                name={`website_source_${row.id}`}
-                value="website_source"
-                checked={row.use_source_website}
-                onChange={checked => handleWebsiteSourceToggle(row.id, checked)}
-              >
-                Website Source
-              </Checkbox>
+              <Flex direction="row" gap="small">
+                <Flex direction="column" gap="extra-small">
+                  <Text format={{ fontWeight: 'demibold' }}>Tagged URL</Text>
+                  {taggedUrl ? (
+                    <Alert title={`Link ${index + 1} URL`} variant="info">{taggedUrl}</Alert>
+                  ) : (
+                    <Text variant="microcopy">Fill in required fields to generate this URL.</Text>
+                  )}
+                </Flex>
+                <Button onClick={() => handleCopyTaggedUrl(taggedUrl)} variant="secondary" disabled={!taggedUrl}>Copy</Button>
+              </Flex>
 
               <Flex direction="row" gap="small">
                 <Select
@@ -544,6 +565,24 @@ export const MassUtmBuilderPage = () => {
                   placeholder={mediumPlaceholder}
                   required
                 />
+                <Input
+                  label="UTM Topic"
+                  name={`utm_topic_${row.id}`}
+                  value={row.utm_topic}
+                  onChange={value => handleRowChange(row.id, 'utm_topic', value)}
+                  placeholder="e.g. model-theme"
+                  required
+                  error={!!row.utm_topic && !isValidSlug(row.utm_topic)}
+                  validationMessage="Lowercase, no spaces."
+                />
+                <Input
+                  label="UTM Term"
+                  name={`utm_term_${row.id}`}
+                  value={row.utm_term}
+                  onChange={value => handleRowChange(row.id, 'utm_term', toSlug(value).slice(0, 20))}
+                  placeholder="e.g. ai-image-generation"
+                  validationMessage={`Max 20 characters. ${row.utm_term.length > 0 ? `${row.utm_term.length}/20` : ''}`}
+                />
               </Flex>
 
               <Flex direction="row" gap="small">
@@ -568,19 +607,6 @@ export const MassUtmBuilderPage = () => {
                   error={!!row.content_piece_name && !isValidSlug(row.content_piece_name)}
                   validationMessage="Lowercase, no spaces. Combined with placement to form utm_content."
                 />
-                <Input
-                  label="UTM Topic"
-                  name={`utm_topic_${row.id}`}
-                  value={row.utm_topic}
-                  onChange={value => handleRowChange(row.id, 'utm_topic', value)}
-                  placeholder="e.g. model-theme"
-                  required
-                  error={!!row.utm_topic && !isValidSlug(row.utm_topic)}
-                  validationMessage="Lowercase, no spaces."
-                />
-              </Flex>
-
-              <Flex direction="row" gap="small">
                 <Select
                   label="Link Placement"
                   name={`link_placement_${row.id}`}
@@ -589,23 +615,6 @@ export const MassUtmBuilderPage = () => {
                   options={placementOptions}
                   placeholder="Select placement..."
                 />
-                <Input
-                  label="UTM Term"
-                  name={`utm_term_${row.id}`}
-                  value={row.utm_term}
-                  onChange={value => handleRowChange(row.id, 'utm_term', toSlug(value).slice(0, 20))}
-                  placeholder="e.g. ai-image-generation"
-                  validationMessage={`Max 20 characters. ${row.utm_term.length > 0 ? `${row.utm_term.length}/20` : ''}`}
-                />
-              </Flex>
-
-              <Flex direction="column" gap="extra-small">
-                <Text format={{ fontWeight: 'demibold' }}>Generated URL</Text>
-                {taggedUrl ? (
-                  <Alert title={`Link ${index + 1} URL`} variant="info">{taggedUrl}</Alert>
-                ) : (
-                  <Text variant="microcopy">Fill in required fields to generate this URL.</Text>
-                )}
               </Flex>
             </Flex>
           );

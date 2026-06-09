@@ -267,16 +267,16 @@ export const RulesPage = () => {
           </Flex>
           {isAdmin && (
             <Flex direction="row" gap="small" style={{ alignItems: 'center' }}>
+              <Flex direction="column" gap="none" style={{ textAlign: 'right' }}>
+                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Lock Edit</Text>
+                <Text variant="microcopy">Only app editors will be able to make changes</Text>
+              </Flex>
               <Toggle
                 name="super_admin_only"
                 label=""
                 checked={superAdminOnly}
                 onChange={(checked) => handleToggleSuperAdminOnly(checked)}
               />
-              <Flex direction="column" gap="none" style={{ textAlign: 'right' }}>
-                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Lock Edit</Text>
-                <Text variant="microcopy">Only app editors will be able to make changes</Text>
-              </Flex>
             </Flex>
           )}
         </Flex>
@@ -339,9 +339,8 @@ export const RulesPage = () => {
 
         {/* Source definitions — read only */}
         {sources.length > 0 && (
+          <Divider />
           <Flex direction="column" gap="extra-small">
-            <Text> </Text>
-            <Text> </Text>
             <Text format={{ fontWeight: 'bold' }}>Source Definitions</Text>
             <Flex direction="row" gap="none" style={{ padding: '4px 4px' }}>
               <Flex style={{ minWidth: '160px', width: '160px' }}>
@@ -370,9 +369,8 @@ export const RulesPage = () => {
 
         {/* Medium definitions — read only */}
         {mediums.length > 0 && (
+          <Divider />
           <Flex direction="column" gap="extra-small">
-            <Text> </Text>
-            <Text> </Text>
             <Text format={{ fontWeight: 'bold' }}>Medium Definitions</Text>
             <Flex direction="row" gap="none" style={{ padding: '4px 4px' }}>
               <Flex style={{ minWidth: '160px', width: '160px' }}>

@@ -28,7 +28,7 @@ async function getConfigRow(token) {
   const r = await apiRequest('GET', `/cms/v3/hubdb/tables/${HUBDB_TABLE_ID}/rows/draft?limit=50`, null, token);
   if (r.status !== 200) return { row: null, error: `getRows failed: ${r.status}` };
   const rows = r.data.results || [];
-  const row = rows.find(r => r.name === 'current') || null;
+  const row = rows.find(r => r.values?.name === 'current') || null;
   return { row, rowId: row?.id || null };
 }
 
@@ -36,15 +36,7 @@ async function getConfigRow(token) {
 async function canEdit(context, token) {
   try {
     const userEmail = context.userEmail || context.user?.email;
-    const userId = context.userId || context.user?.id;
-
-    // Check HubSpot superAdmin status
-    let isSuperAdmin = false;
-    if (userId) {
-      const r = await apiRequest('GET', `/settings/v3/users/${userId}`, null, token);
-      isSuperAdmin = r.data?.superAdmin === true;
-    }
-    if (isSuperAdmin) return true;
+    if (!userEmail) return false;
 
     // Check editor_emails from HubDB config row
     const { row } = await getConfigRow(token);
@@ -52,7 +44,7 @@ async function canEdit(context, token) {
     const editorEmailsRaw = row.values?.editor_emails;
     if (!editorEmailsRaw) return false;
     const editorEmails = JSON.parse(editorEmailsRaw);
-    return Array.isArray(editorEmails) && userEmail && editorEmails.includes(userEmail);
+    return Array.isArray(editorEmails) && editorEmails.includes(userEmail);
   } catch { return false; }
 }
 

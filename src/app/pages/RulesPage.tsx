@@ -261,12 +261,10 @@ export const RulesPage = () => {
         </Text>
 
         <Flex direction="row" gap="none" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <Flex direction="column" gap="none">
-            {lastUpdated && (
-              <Text variant="microcopy">
-                Last updated: {lastUpdated}{lastUpdatedBy ? ` by ${lastUpdatedBy}` : ''}
-              </Text>
-            )}
+          <Flex direction="column" gap="none" style={{ flex: '1 1 auto' }}>
+            <Text variant="microcopy">
+              {lastUpdated ? `Last updated: ${lastUpdated}${lastUpdatedBy ? ` by ${lastUpdatedBy}` : ''}` : ' '}
+            </Text>
           </Flex>
           {isAdmin && (
             <Flex direction="row" gap="extra-small" style={{ alignItems: 'center' }}>

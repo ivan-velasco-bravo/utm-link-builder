@@ -219,10 +219,10 @@ export const RulesPage = () => {
         <Flex direction="column" gap="extra-small">
           <Flex direction="row" gap="none">
             <Flex direction="column" gap="none" style={{ minWidth: '160px', width: '160px' }}>
-              <Text format={{ fontWeight: 'bold' }} variant="microcopy">Medium/Text>
+              <Text format={{ fontWeight: 'bold' }} variant="microcopy">Medium</Text>
             </Flex>
             <Flex direction="column" gap="none" style={{ flex: 1, alignItems: 'center' }}>
-              <Text format={{ fontWeight: 'bold' }} variant="microcopy">Source/Text>
+              <Text format={{ fontWeight: 'bold' }} variant="microcopy">Source</Text>
             </Flex>
           </Flex>
           <Flex direction="row" gap="none">

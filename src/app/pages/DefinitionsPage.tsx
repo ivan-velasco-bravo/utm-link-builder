@@ -7,6 +7,7 @@ import {
   Alert,
   LoadingSpinner,
   Input,
+  Textarea,
   hubspot,
 } from '@hubspot/ui-extensions';
 import {
@@ -201,12 +202,6 @@ export const DefinitionsPage = () => {
     padding: '8px 4px',
     background: i % 2 === 0 ? '#f5f8fa' : '#ffffff',
   });
-  const editCellStyle: Record<string, string> = {
-    background: '#edf4ff',
-    border: '1px solid #b3d4ff',
-    borderRadius: '4px',
-    padding: '4px 6px',
-  };
 
   return (
     <>
@@ -272,14 +267,12 @@ export const DefinitionsPage = () => {
                 </Flex>
                 <Flex style={{ minWidth: COL_EX, width: COL_EX }}>
                   {editMode ? (
-                    <Flex style={editCellStyle}>
-                      <Input
+                    <Input
                         name={`param_ex_${p.key}`}
                         value={draft.params[p.key]?.example || ''}
                         onChange={(v) => updateDraftParam(p.key, 'example', v)}
                         placeholder="Format / example..."
                       />
-                    </Flex>
                   ) : (
                     <Text variant="microcopy" format={{ fontStyle: 'italic' }}>
                       {defs.params[p.key]?.example || p.example}
@@ -288,7 +281,7 @@ export const DefinitionsPage = () => {
                 </Flex>
                 <Flex style={{ flex: 1 }}>
                   {editMode ? (
-                    <Input
+                    <Textarea
                         name={`param_desc_${p.key}`}
                         value={draft.params[p.key]?.description || ''}
                         onChange={(v) => updateDraftParam(p.key, 'description', v)}
@@ -333,7 +326,7 @@ export const DefinitionsPage = () => {
                   </Flex>
                   <Flex style={{ flex: 1 }}>
                     {editMode ? (
-                      <Input
+                      <Textarea
                           name={`source_${s.value}`}
                           value={draft.sources[s.value] || ''}
                           onChange={(v) => updateDraftSource(s.value, v)}
@@ -379,7 +372,7 @@ export const DefinitionsPage = () => {
                   </Flex>
                   <Flex style={{ flex: 1 }}>
                     {editMode ? (
-                      <Input
+                      <Textarea
                           name={`medium_${m.value}`}
                           value={draft.mediums[m.value] || ''}
                           onChange={(v) => updateDraftMedium(m.value, v)}

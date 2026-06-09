@@ -252,7 +252,7 @@ export const RulesPage = () => {
       </PageBreadcrumbs>
       <PageTitle>Field Dependencies</PageTitle>
 
-      <Flex direction="column" gap="medium">
+      <Flex direction="column" gap="large">
         <Text variant="microcopy">
           Define which UTM Mediums are available for each UTM Source. When a source is selected on the Create UTM Link page, only its allowed mediums will appear. Use this page to configure those dependencies, then save to apply them across the app. Sync field values to pull the latest source and medium options from HubSpot.
         </Text>
@@ -267,7 +267,7 @@ export const RulesPage = () => {
           </Flex>
           {isAdmin && (
             <Flex direction="row" gap="small" style={{ alignItems: 'center' }}>
-              <Flex direction="column" gap="none" style={{ textAlign: 'right', alignItems: 'flex-end' }}>
+              <Flex direction="column" gap="none" style={{ textAlign: 'right' }}>
                 <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Lock Edit</Text>
                 <Text variant="microcopy">Only app editors will be able to make changes</Text>
               </Flex>
@@ -339,10 +339,8 @@ export const RulesPage = () => {
 
         {/* Source definitions — read only */}
         {sources.length > 0 && (
-          <Flex direction="column" gap="extra-small">
-            <Text variant="microcopy"> </Text>
+          <Flex direction="column" gap="extra-small" style={{ paddingTop: "24px" }}>
             <Divider />
-            <Text variant="microcopy"> </Text>
             <Text format={{ fontWeight: 'bold' }}>Source Definitions</Text>
             <Flex direction="row" gap="none" style={{ padding: '4px 4px' }}>
               <Flex style={{ minWidth: '160px', width: '160px' }}>
@@ -371,10 +369,8 @@ export const RulesPage = () => {
 
         {/* Medium definitions — read only */}
         {mediums.length > 0 && (
-          <Flex direction="column" gap="extra-small">
-            <Text variant="microcopy"> </Text>
+          <Flex direction="column" gap="extra-small" style={{ paddingTop: "24px" }}>
             <Divider />
-            <Text variant="microcopy"> </Text>
             <Text format={{ fontWeight: 'bold' }}>Medium Definitions</Text>
             <Flex direction="row" gap="none" style={{ padding: '4px 4px' }}>
               <Flex style={{ minWidth: '160px', width: '160px' }}>

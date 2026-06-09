@@ -1,5 +1,6 @@
 import {
   Button,
+  Checkbox,
   DateInput,
   Flex,
   Input,
@@ -27,6 +28,16 @@ function isValidSlug(val: string): boolean {
 
 function toSlug(val: string): string {
   return val.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-_]/g, '');
+}
+
+function toWebsiteSource(val: string): string {
+  return val
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .split(/[/?#]/)[0]
+    .replace(/\s+/g, '-');
 }
 
 import { DEFAULT_MAP } from './RulesPage.tsx';
@@ -164,6 +175,8 @@ export const NewUtmBuilderPage = () => {
     destination_url: '',
     content_activation_date: getTodayDate(),
     utm_source: '',
+    use_source_website: false,
+    source_website: '',
     utm_medium: '',
     content_piece_name: '',
     utm_topic: '',
@@ -176,7 +189,9 @@ export const NewUtmBuilderPage = () => {
   const [dateError, setDateError] = useState('');
   const [urlError, setUrlError] = useState('');
 
-  const filteredMediumOptions = form.utm_source && sourceMediumMap[form.utm_source]
+  const selectedSource = form.use_source_website ? toWebsiteSource(form.source_website) : form.utm_source;
+
+  const filteredMediumOptions = !form.use_source_website && form.utm_source && sourceMediumMap[form.utm_source]
     ? mediumOptions.filter(o => sourceMediumMap[form.utm_source].includes(o.value))
     : mediumOptions;
 
@@ -185,12 +200,12 @@ export const NewUtmBuilderPage = () => {
     : '';
 
   const taggedUrl = (() => {
-    if (!form.destination_url || !form.utm_source || !form.utm_medium || !form.campaign_utm || !utmContent || !form.utm_topic) return '';
+    if (!form.destination_url || !selectedSource || !form.utm_medium || !form.campaign_utm || !utmContent || !form.utm_topic) return '';
     if (!isValidUrl(form.destination_url)) return '';
     if (!isValidIsoDate(form.content_activation_date)) return '';
     try {
       const url = new URL(normalizeUrl(form.destination_url));
-      url.searchParams.set('utm_source', form.utm_source);
+      url.searchParams.set('utm_source', selectedSource);
       url.searchParams.set('utm_medium', form.utm_medium);
       url.searchParams.set('utm_campaign', form.campaign_utm);
       url.searchParams.set('utm_content', utmContent);
@@ -321,6 +336,16 @@ export const NewUtmBuilderPage = () => {
     handleDateChange(`${val.year}-${pad2(val.month + 1)}-${pad2(val.date)}`);
   };
 
+  const handleSourceWebsiteToggle = (checked: boolean) => {
+    setForm(prev => ({
+      ...prev,
+      use_source_website: checked,
+      utm_source: checked ? '' : prev.utm_source,
+    }));
+    setSuccess(false);
+    setError(null);
+  };
+
   const handleUrlChange = (val: string) => {
     setForm(prev => ({ ...prev, destination_url: val }));
     if (val && !isValidUrl(val)) {
@@ -373,7 +398,9 @@ export const NewUtmBuilderPage = () => {
     if (!isValidUrl(form.destination_url)) { setError('Please enter a valid URL.'); return false; }
     if (!form.content_activation_date) { setError('Content Activation Date is required.'); return false; }
     if (!isValidIsoDate(form.content_activation_date)) { setError('Content Activation Date must use YYYY-MM-DD.'); return false; }
-    if (!form.utm_source) { setError('UTM Source is required.'); return false; }
+    if (form.use_source_website) {
+      if (!selectedSource) { setError('Source Website is required.'); return false; }
+    } else if (!form.utm_source) { setError('UTM Source is required.'); return false; }
     if (!form.utm_medium) { setError('UTM Medium is required.'); return false; }
     if (!form.content_piece_name) { setError('Content Piece Name is required.'); return false; }
     if (!isValidSlug(form.content_piece_name)) { setError('Content Piece Name must be lowercase with no spaces.'); return false; }
@@ -392,13 +419,17 @@ export const NewUtmBuilderPage = () => {
         content_piece_name: form.content_piece_name,
         destination_url: destUrl,
         content_activation_date: toHubSpotDateValue(form.content_activation_date),
-        utm_source: form.utm_source,
         utm_medium: form.utm_medium,
         utm_campaign: form.campaign_utm,
         utm_content: utmContent,
         utm_topic: form.utm_topic,
         tagged_url: taggedUrl,
       };
+      if (form.use_source_website) {
+        properties.source_website = selectedSource;
+      } else {
+        properties.utm_source = form.utm_source;
+      }
       if (form.link_placement) properties.link_placement = form.link_placement;
       if (form.utm_term) properties.utm_term = form.utm_term;
 
@@ -414,6 +445,8 @@ export const NewUtmBuilderPage = () => {
         destination_url: '',
         content_activation_date: getTodayDate(),
         utm_source: '',
+        use_source_website: false,
+        source_website: '',
         utm_medium: '',
         content_piece_name: '',
         utm_topic: '',
@@ -451,6 +484,8 @@ export const NewUtmBuilderPage = () => {
       destination_url: '',
       content_activation_date: getTodayDate(),
       utm_source: '',
+      use_source_website: false,
+      source_website: '',
       utm_medium: '',
       content_piece_name: '',
       utm_topic: '',
@@ -514,29 +549,42 @@ export const NewUtmBuilderPage = () => {
 
           <Divider />
 
+          <Checkbox
+            name="website_source"
+            value="website_source"
+            checked={form.use_source_website}
+            onChange={checked => handleSourceWebsiteToggle(checked)}
+          >
+            Website Source
+          </Checkbox>
+
           <Flex direction="row" gap="small">
-            <Select label="UTM Source" name="utm_source" value={form.utm_source} onChange={val => handleChange('utm_source', val)} options={sourceOptions} placeholder="Select source..." required />
-            <Select label="UTM Medium" name="utm_medium" value={form.utm_medium} onChange={val => handleChange('utm_medium', val)} options={filteredMediumOptions} placeholder={form.utm_source ? "Select medium..." : "Select source first..."} required />
+            <Select label="UTM Source" name="utm_source" value={form.utm_source} onChange={val => handleChange('utm_source', val)} options={sourceOptions} placeholder={form.use_source_website ? "Using source website..." : "Select source..."} required={!form.use_source_website} readOnly={form.use_source_website} />
+            {form.use_source_website && (
+              <Input label="Source Website" name="source_website" value={form.source_website} onChange={val => handleChange('source_website', val)} placeholder="e.g. partner-site.com" required validationMessage={selectedSource ? `utm_source=${selectedSource}` : undefined} />
+            )}
+            <Select label="UTM Medium" name="utm_medium" value={form.utm_medium} onChange={val => handleChange('utm_medium', val)} options={filteredMediumOptions} placeholder={form.use_source_website || form.utm_source ? "Select medium..." : "Select source first..."} required />
           </Flex>
 
-          <DateInput
-            label="Content Activation Date"
-            name="content_activation_date"
-            value={toDateInputValue(form.content_activation_date) || undefined}
-            onChange={handleDatePickerChange}
-            format="YYYY-MM-DD"
-            clearButtonLabel="Clear"
-            todayButtonLabel="Today"
-            required
-            error={!!dateError}
-            validationMessage={dateError || 'Used as the date prefix for utm_content.'}
-          />
-
-          <Input label="Content Piece Name" name="content_piece_name" value={form.content_piece_name} onChange={val => handleChange('content_piece_name', val)} placeholder="e.g. q3-brand-video" required error={!!slugError} validationMessage={slugError || 'Lowercase, no spaces. Combined with placement to form utm_content.'} />
-
-          <Input label="UTM Topic" name="utm_topic" value={form.utm_topic} onChange={val => handleChange('utm_topic', val)} placeholder="e.g. model-theme" required error={!!topicSlugError} validationMessage={topicSlugError || 'Lowercase, no spaces.'} />
+          <Flex direction="row" gap="small">
+            <DateInput
+              label="Content Activation Date"
+              name="content_activation_date"
+              value={toDateInputValue(form.content_activation_date) || undefined}
+              onChange={handleDatePickerChange}
+              format="YYYY-MM-DD"
+              clearButtonLabel="Clear"
+              todayButtonLabel="Today"
+              required
+              error={!!dateError}
+              validationMessage={dateError || 'Used as the date prefix for utm_content.'}
+            />
+            <Input label="Content Piece Name" name="content_piece_name" value={form.content_piece_name} onChange={val => handleChange('content_piece_name', val)} placeholder="e.g. q3-brand-video" required error={!!slugError} validationMessage={slugError || 'Lowercase, no spaces. Combined with placement to form utm_content.'} />
+          </Flex>
 
           <Select label="Link Placement" name="link_placement" value={form.link_placement} onChange={val => handleChange('link_placement', val)} options={placementOptions} placeholder="Select placement..." />
+
+          <Input label="UTM Topic" name="utm_topic" value={form.utm_topic} onChange={val => handleChange('utm_topic', val)} placeholder="e.g. model-theme" required error={!!topicSlugError} validationMessage={topicSlugError || 'Lowercase, no spaces.'} />
 
           <Divider />
 
@@ -566,7 +614,7 @@ export const NewUtmBuilderPage = () => {
           <Flex direction="column" gap="extra-small">
             <Text format={{ fontWeight: 'bold' }}>UTM Parameters</Text>
             <Text format={{ fontWeight: 'demibold' }}>utm_source</Text>
-            <Text variant="microcopy">{form.utm_source || '—'}</Text>
+            <Text variant="microcopy">{selectedSource || '—'}</Text>
             <Text format={{ fontWeight: 'demibold' }}>utm_medium</Text>
             <Text variant="microcopy">{form.utm_medium || '—'}</Text>
             <Text format={{ fontWeight: 'demibold' }}>utm_campaign</Text>

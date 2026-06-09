@@ -116,7 +116,7 @@ export const RulesPage = () => {
     setError(null);
     try {
       const debugResult = await callFn('debug');
-      console.log('DEBUG canEdit:', JSON.stringify(debugResult));
+      setError('DEBUG: ' + JSON.stringify(debugResult));
       const [configResult, adminResult] = await Promise.all([
         callFn('getConfig'),
         callFn('checkAdmin'),

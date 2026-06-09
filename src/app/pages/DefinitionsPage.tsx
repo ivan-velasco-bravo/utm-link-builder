@@ -211,13 +211,13 @@ export const DefinitionsPage = () => {
   return (
     <>
       <PageBreadcrumbs>
-        <PageBreadcrumbs.Current>Value Definitions</PageBreadcrumbs.Current>
+        <PageBreadcrumbs.Current>Term & Value Definitions</PageBreadcrumbs.Current>
       </PageBreadcrumbs>
-      <PageTitle>Value Definitions</PageTitle>
+      <PageTitle>Term & Value Definitions</PageTitle>
 
       <Flex direction="column" gap="large">
         <Text variant="microcopy">
-          Descriptions and format examples for each UTM parameter, source, and medium used in Runware campaigns.
+          This page documents the meaning, format, and expected values for every UTM field used in Runware campaigns. Use it as a reference when building links or onboarding new team members. Admins can edit descriptions and examples directly — labels are always synced from HubSpot property values.
         </Text>
 
         {error   && <Alert title="Error"  variant="error"  >{error}</Alert>}

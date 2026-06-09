@@ -275,7 +275,7 @@ export const RulesPage = () => {
         {/* Lock toggle — right-aligned to matrix edge */}
         {isAdmin && (
           <Flex direction="row" gap="none">
-            <Flex direction="column" gap="none" style={{ flex: 1 }}>
+            <Flex direction="column" gap="none" style={{ minWidth: '900px', width: '900px' }}>
               <Text variant="microcopy"> </Text>
             </Flex>
             <Flex direction="row" gap="extra-small" style={{ alignItems: 'center' }}>

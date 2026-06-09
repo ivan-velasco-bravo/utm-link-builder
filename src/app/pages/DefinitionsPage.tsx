@@ -15,7 +15,6 @@ import {
 } from '@hubspot/ui-extensions/pages';
 import { useState, useEffect } from 'react';
 
-// Default UTM parameter definitions
 const DEFAULT_PARAMS: ParamDef[] = [
   {
     key: 'utm_source',
@@ -76,26 +75,25 @@ interface Definitions {
 const callFn = (action: string, params?: any): Promise<any> =>
   hubspot.serverless('utm_builder_app_function', { parameters: { action, params } });
 
+// Column widths — consistent across all sections
+const COL_LABEL = '160px';
+const COL_SLUG  = '160px';
+const COL_EX    = '200px';
+
 export const DefinitionsPage = () => {
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [syncing, setSyncing] = useState(false);
+  const [loading, setLoading]   = useState(true);
+  const [saving, setSaving]     = useState(false);
+  const [syncing, setSyncing]   = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [error, setError]       = useState<string | null>(null);
+  const [success, setSuccess]   = useState(false);
+  const [isAdmin, setIsAdmin]   = useState(false);
 
-  const [sources, setSources] = useState<FieldOption[]>([]);
-  const [mediums, setMediums] = useState<FieldOption[]>([]);
-  const [params] = useState<ParamDef[]>(DEFAULT_PARAMS);
+  const [sources, setSources]   = useState<FieldOption[]>([]);
+  const [mediums, setMediums]   = useState<FieldOption[]>([]);
+  const [params]                = useState<ParamDef[]>(DEFAULT_PARAMS);
 
-  // Editable state
-  const [defs, setDefs] = useState<Definitions>({
-    params: {},
-    sources: {},
-    mediums: {},
-  });
-  // Draft copy for edit mode
+  const [defs, setDefs]   = useState<Definitions>({ params: {}, sources: {}, mediums: {} });
   const [draft, setDraft] = useState<Definitions>({ params: {}, sources: {}, mediums: {} });
 
   useEffect(() => { loadAll(); }, []);
@@ -110,25 +108,20 @@ export const DefinitionsPage = () => {
       ]);
 
       setIsAdmin(adminResult?.isAdmin === true);
-
       const config = configResult?.config;
 
-      // Load field values
       const liveSources: FieldOption[] = config?.fieldValues?.sources || [];
       const liveMediums: FieldOption[] = config?.fieldValues?.mediums || [];
       setSources(liveSources);
       setMediums(liveMediums);
 
-      // Load saved definitions or build defaults
       const saved: Definitions = config?.definitionsCurrent || { params: {}, sources: {}, mediums: {} };
 
-      // Merge defaults with saved for params
       const mergedParams: Record<string, { description: string; example: string }> = {};
       for (const p of DEFAULT_PARAMS) {
         mergedParams[p.key] = saved.params?.[p.key] || { description: p.description, example: p.example };
       }
 
-      // Merge defaults with saved for sources/mediums
       const mergedSources: Record<string, string> = {};
       for (const s of liveSources) {
         mergedSources[s.value] = saved.sources?.[s.value] || '';
@@ -192,30 +185,28 @@ export const DefinitionsPage = () => {
     }
   };
 
-  const updateDraftParam = (key: string, field: 'description' | 'example', value: string) => {
-    setDraft(prev => ({
-      ...prev,
-      params: { ...prev.params, [key]: { ...prev.params[key], [field]: value } },
-    }));
-  };
+  const updateDraftParam  = (key: string, field: 'description' | 'example', value: string) =>
+    setDraft(prev => ({ ...prev, params: { ...prev.params, [key]: { ...prev.params[key], [field]: value } } }));
 
-  const updateDraftSource = (key: string, value: string) => {
+  const updateDraftSource = (key: string, value: string) =>
     setDraft(prev => ({ ...prev, sources: { ...prev.sources, [key]: value } }));
-  };
 
-  const updateDraftMedium = (key: string, value: string) => {
+  const updateDraftMedium = (key: string, value: string) =>
     setDraft(prev => ({ ...prev, mediums: { ...prev.mediums, [key]: value } }));
-  };
 
   if (loading) return <LoadingSpinner label="Loading definitions..." />;
 
   const editable = isAdmin;
-  const colLabel = editMode ? '160px' : '160px';
-  const colDesc = editMode ? '340px' : '340px';
-  const colEx = '200px';
-
-  // Row background helper
-  const rowBg = (i: number) => ({ padding: '6px 4px', background: i % 2 === 0 ? '#f5f8fa' : '#ffffff' });
+  const rowBg    = (i: number): Record<string, string> => ({
+    padding: '8px 4px',
+    background: i % 2 === 0 ? '#f5f8fa' : '#ffffff',
+  });
+  const editCellStyle: Record<string, string> = {
+    background: '#edf4ff',
+    border: '1px solid #b3d4ff',
+    borderRadius: '4px',
+    padding: '4px 6px',
+  };
 
   return (
     <>
@@ -229,7 +220,7 @@ export const DefinitionsPage = () => {
           Descriptions and format examples for each UTM parameter, source, and medium used in Runware campaigns.
         </Text>
 
-        {error && <Alert title="Error" variant="error">{error}</Alert>}
+        {error   && <Alert title="Error"  variant="error"  >{error}</Alert>}
         {success && <Alert title="Saved!" variant="success">Definitions updated successfully.</Alert>}
 
         {/* Action buttons */}
@@ -254,26 +245,20 @@ export const DefinitionsPage = () => {
           )}
         </Flex>
 
-        {editMode && (
-          <Alert title="Edit mode" variant="info">
-            Labels are read from HubSpot property values — use Sync field values to refresh them. Only descriptions and examples are editable.
-          </Alert>
-        )}
-
-        {/* UTM Parameters */}
+        {/* ── Runware UTM Parameters Structure ── */}
         <Flex direction="column" gap="extra-small">
-          <Text format={{ fontWeight: 'bold' }}>UTM Parameters</Text>
+          <Text format={{ fontWeight: 'bold' }}>Runware UTM Parameters Structure</Text>
 
-          {/* Header row */}
+          {/* Header */}
           <Flex direction="row" gap="none" style={{ padding: '4px 4px' }}>
-            <Flex style={{ minWidth: colLabel, width: colLabel }}>
+            <Flex style={{ minWidth: COL_LABEL, width: COL_LABEL }}>
               <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Parameter</Text>
             </Flex>
-            <Flex style={{ minWidth: colDesc, width: colDesc }}>
-              <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Description</Text>
+            <Flex style={{ minWidth: COL_EX, width: COL_EX }}>
+              <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Format / Example</Text>
             </Flex>
             <Flex style={{ flex: 1 }}>
-              <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Format / Example</Text>
+              <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Description</Text>
             </Flex>
           </Flex>
           <Divider />
@@ -282,33 +267,37 @@ export const DefinitionsPage = () => {
             <React.Fragment key={p.key}>
               {i > 0 && <Divider />}
               <Flex direction="row" gap="none" style={rowBg(i)}>
-                <Flex style={{ minWidth: colLabel, width: colLabel }}>
+                <Flex style={{ minWidth: COL_LABEL, width: COL_LABEL }}>
                   <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>{p.label}</Text>
                 </Flex>
-                <Flex style={{ minWidth: colDesc, width: colDesc }}>
+                <Flex style={{ minWidth: COL_EX, width: COL_EX }}>
                   {editMode ? (
-                    <Input
-                      name={`param_desc_${p.key}`}
-                      value={draft.params[p.key]?.description || ''}
-                      onChange={(v) => updateDraftParam(p.key, 'description', v)}
-                      placeholder="Description..."
-                    />
-                  ) : (
-                    <Text variant="microcopy">{defs.params[p.key]?.description || p.description}</Text>
-                  )}
-                </Flex>
-                <Flex style={{ flex: 1 }}>
-                  {editMode ? (
-                    <Input
-                      name={`param_ex_${p.key}`}
-                      value={draft.params[p.key]?.example || ''}
-                      onChange={(v) => updateDraftParam(p.key, 'example', v)}
-                      placeholder="Format / example..."
-                    />
+                    <Flex style={editCellStyle}>
+                      <Input
+                        name={`param_ex_${p.key}`}
+                        value={draft.params[p.key]?.example || ''}
+                        onChange={(v) => updateDraftParam(p.key, 'example', v)}
+                        placeholder="Format / example..."
+                      />
+                    </Flex>
                   ) : (
                     <Text variant="microcopy" format={{ fontStyle: 'italic' }}>
                       {defs.params[p.key]?.example || p.example}
                     </Text>
+                  )}
+                </Flex>
+                <Flex style={{ flex: 1 }}>
+                  {editMode ? (
+                    <Flex style={editCellStyle}>
+                      <Input
+                        name={`param_desc_${p.key}`}
+                        value={draft.params[p.key]?.description || ''}
+                        onChange={(v) => updateDraftParam(p.key, 'description', v)}
+                        placeholder="Description..."
+                      />
+                    </Flex>
+                  ) : (
+                    <Text variant="microcopy">{defs.params[p.key]?.description || p.description}</Text>
                   )}
                 </Flex>
               </Flex>
@@ -316,14 +305,17 @@ export const DefinitionsPage = () => {
           ))}
         </Flex>
 
-        {/* Source Definitions */}
+        {/* ── Source Definitions ── */}
         {sources.length > 0 && (
           <Flex direction="column" gap="extra-small">
             <Text format={{ fontWeight: 'bold' }}>Source Definitions</Text>
 
             <Flex direction="row" gap="none" style={{ padding: '4px 4px' }}>
-              <Flex style={{ minWidth: colLabel, width: colLabel }}>
-                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Source</Text>
+              <Flex style={{ minWidth: COL_LABEL, width: COL_LABEL }}>
+                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Label</Text>
+              </Flex>
+              <Flex style={{ minWidth: COL_SLUG, width: COL_SLUG }}>
+                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>URL Slug</Text>
               </Flex>
               <Flex style={{ flex: 1 }}>
                 <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Description</Text>
@@ -335,17 +327,22 @@ export const DefinitionsPage = () => {
               <React.Fragment key={s.value}>
                 {i > 0 && <Divider />}
                 <Flex direction="row" gap="none" style={rowBg(i)}>
-                  <Flex style={{ minWidth: colLabel, width: colLabel }}>
+                  <Flex style={{ minWidth: COL_LABEL, width: COL_LABEL }}>
                     <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>{s.label}</Text>
+                  </Flex>
+                  <Flex style={{ minWidth: COL_SLUG, width: COL_SLUG }}>
+                    <Text variant="microcopy" format={{ fontStyle: 'italic' }}>{s.value}</Text>
                   </Flex>
                   <Flex style={{ flex: 1 }}>
                     {editMode ? (
-                      <Input
-                        name={`source_${s.value}`}
-                        value={draft.sources[s.value] || ''}
-                        onChange={(v) => updateDraftSource(s.value, v)}
-                        placeholder="Describe this source..."
-                      />
+                      <Flex style={editCellStyle}>
+                        <Input
+                          name={`source_${s.value}`}
+                          value={draft.sources[s.value] || ''}
+                          onChange={(v) => updateDraftSource(s.value, v)}
+                          placeholder="Describe this source..."
+                        />
+                      </Flex>
                     ) : (
                       <Text variant="microcopy">{defs.sources[s.value] || '—'}</Text>
                     )}
@@ -356,14 +353,17 @@ export const DefinitionsPage = () => {
           </Flex>
         )}
 
-        {/* Medium Definitions */}
+        {/* ── Medium Definitions ── */}
         {mediums.length > 0 && (
           <Flex direction="column" gap="extra-small">
             <Text format={{ fontWeight: 'bold' }}>Medium Definitions</Text>
 
             <Flex direction="row" gap="none" style={{ padding: '4px 4px' }}>
-              <Flex style={{ minWidth: colLabel, width: colLabel }}>
-                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Medium</Text>
+              <Flex style={{ minWidth: COL_LABEL, width: COL_LABEL }}>
+                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Label</Text>
+              </Flex>
+              <Flex style={{ minWidth: COL_SLUG, width: COL_SLUG }}>
+                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>URL Slug</Text>
               </Flex>
               <Flex style={{ flex: 1 }}>
                 <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Description</Text>
@@ -375,17 +375,22 @@ export const DefinitionsPage = () => {
               <React.Fragment key={m.value}>
                 {i > 0 && <Divider />}
                 <Flex direction="row" gap="none" style={rowBg(i)}>
-                  <Flex style={{ minWidth: colLabel, width: colLabel }}>
+                  <Flex style={{ minWidth: COL_LABEL, width: COL_LABEL }}>
                     <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>{m.label}</Text>
+                  </Flex>
+                  <Flex style={{ minWidth: COL_SLUG, width: COL_SLUG }}>
+                    <Text variant="microcopy" format={{ fontStyle: 'italic' }}>{m.value}</Text>
                   </Flex>
                   <Flex style={{ flex: 1 }}>
                     {editMode ? (
-                      <Input
-                        name={`medium_${m.value}`}
-                        value={draft.mediums[m.value] || ''}
-                        onChange={(v) => updateDraftMedium(m.value, v)}
-                        placeholder="Describe this medium..."
-                      />
+                      <Flex style={editCellStyle}>
+                        <Input
+                          name={`medium_${m.value}`}
+                          value={draft.mediums[m.value] || ''}
+                          onChange={(v) => updateDraftMedium(m.value, v)}
+                          placeholder="Describe this medium..."
+                        />
+                      </Flex>
                     ) : (
                       <Text variant="microcopy">{defs.mediums[m.value] || '—'}</Text>
                     )}

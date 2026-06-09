@@ -339,8 +339,8 @@ export const RulesPage = () => {
 
         {/* Source definitions — read only */}
         {sources.length > 0 && (
-          <Divider />
           <Flex direction="column" gap="extra-small">
+            <Divider />
             <Text format={{ fontWeight: 'bold' }}>Source Definitions</Text>
             <Flex direction="row" gap="none" style={{ padding: '4px 4px' }}>
               <Flex style={{ minWidth: '160px', width: '160px' }}>
@@ -369,8 +369,8 @@ export const RulesPage = () => {
 
         {/* Medium definitions — read only */}
         {mediums.length > 0 && (
-          <Divider />
           <Flex direction="column" gap="extra-small">
+            <Divider />
             <Text format={{ fontWeight: 'bold' }}>Medium Definitions</Text>
             <Flex direction="row" gap="none" style={{ padding: '4px 4px' }}>
               <Flex style={{ minWidth: '160px', width: '160px' }}>

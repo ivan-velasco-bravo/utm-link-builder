@@ -4,7 +4,6 @@ import {
   Divider,
   Flex,
   Heading,
-  Tag,
   Text,
   Alert,
   LoadingSpinner,
@@ -269,14 +268,20 @@ export const RulesPage = () => {
             )}
           </Flex>
           {isAdmin && (
-            <Flex direction="row" gap="extra-small" style={{ alignItems: 'center' }}>
+            <Flex direction="row" gap="small" style={{ alignItems: 'center' }}>
+              <Button
+                variant="transparent"
+                size="xs"
+                overlay={<Tooltip>Only app editors will be able to make changes</Tooltip>}
+              >
+                ⓘ
+              </Button>
               <Toggle
                 name="super_admin_only"
                 label={superAdminOnly ? 'LOCK ON' : 'LOCK OFF'}
                 checked={superAdminOnly}
                 onChange={(checked) => handleToggleSuperAdminOnly(checked)}
               />
-              <Tag overlay={<Tooltip>Only app editors will be able to make changes</Tooltip>}>i</Tag>
             </Flex>
           )}
         </Flex>

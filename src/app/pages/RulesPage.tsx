@@ -268,7 +268,8 @@ export const RulesPage = () => {
             )}
           </Flex>
           {isAdmin && (
-            <Flex direction="row" gap="small" style={{ alignItems: 'center' }}>
+            <Flex direction="row" gap="extra-small" style={{ alignItems: 'center' }}>
+              <Text format={{ fontWeight: 'bold' }}>LOCK</Text>
               <Button
                 variant="transparent"
                 size="xs"
@@ -278,7 +279,8 @@ export const RulesPage = () => {
               </Button>
               <Toggle
                 name="super_admin_only"
-                label={superAdminOnly ? 'LOCK ON' : 'LOCK OFF'}
+                label=""
+                labelDisplay="hidden"
                 checked={superAdminOnly}
                 onChange={(checked) => handleToggleSuperAdminOnly(checked)}
               />
@@ -348,10 +350,10 @@ export const RulesPage = () => {
             <Heading>Source Definitions:</Heading>
             <Flex direction="row" gap="none" style={{ padding: '4px 4px' }}>
               <Flex style={{ minWidth: '160px', width: '160px' }}>
-                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Label</Text>
+                <Text format={{ fontWeight: 'bold' }}>Label</Text>
               </Flex>
               <Flex style={{ flex: 1 }}>
-                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Description</Text>
+                <Text format={{ fontWeight: 'bold' }}>Description</Text>
               </Flex>
             </Flex>
             <Divider />
@@ -360,10 +362,10 @@ export const RulesPage = () => {
                 {i > 0 && <Divider />}
                 <Flex direction="row" gap="none" style={rowBg(i)}>
                   <Flex style={{ minWidth: '160px', width: '160px' }}>
-                    <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>{label}</Text>
+                    <Text format={{ fontWeight: 'demibold' }}>{label}</Text>
                   </Flex>
                   <Flex style={{ flex: 1 }}>
-                    <Text variant="microcopy">{definitions.sources?.[value] || '—'}</Text>
+                    <Text>{definitions.sources?.[value] || '—'}</Text>
                   </Flex>
                 </Flex>
               </React.Fragment>
@@ -377,10 +379,10 @@ export const RulesPage = () => {
             <Heading>Medium Definitions:</Heading>
             <Flex direction="row" gap="none" style={{ padding: '4px 4px' }}>
               <Flex style={{ minWidth: '160px', width: '160px' }}>
-                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Label</Text>
+                <Text format={{ fontWeight: 'bold' }}>Label</Text>
               </Flex>
               <Flex style={{ flex: 1 }}>
-                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Description</Text>
+                <Text format={{ fontWeight: 'bold' }}>Description</Text>
               </Flex>
             </Flex>
             <Divider />
@@ -389,10 +391,10 @@ export const RulesPage = () => {
                 {i > 0 && <Divider />}
                 <Flex direction="row" gap="none" style={rowBg(i)}>
                   <Flex style={{ minWidth: '160px', width: '160px' }}>
-                    <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>{label}</Text>
+                    <Text format={{ fontWeight: 'demibold' }}>{label}</Text>
                   </Flex>
                   <Flex style={{ flex: 1 }}>
-                    <Text variant="microcopy">{definitions.mediums?.[value] || '—'}</Text>
+                    <Text>{definitions.mediums?.[value] || '—'}</Text>
                   </Flex>
                 </Flex>
               </React.Fragment>

@@ -15,7 +15,6 @@ import {
 } from '@hubspot/ui-extensions/pages';
 import { useState, useEffect } from 'react';
 
-// Fallback field values if HubDB has no synced values yet
 const DEFAULT_SOURCES = [
   { label: 'LinkedIn', value: 'linkedin' },
   { label: 'Instagram', value: 'instagram' },
@@ -71,6 +70,12 @@ export const DEFAULT_MAP: Record<string, string[]> = {
 type FieldOption = { label: string; value: string };
 type MapState = Record<string, Record<string, boolean>>;
 
+interface Definitions {
+  params?: Record<string, { description: string; example: string }>;
+  sources?: Record<string, string>;
+  mediums?: Record<string, string>;
+}
+
 function mapToState(map: Record<string, string[]>, srcs: FieldOption[], meds: FieldOption[]): MapState {
   const state: MapState = {};
   for (const src of srcs) {
@@ -91,20 +96,20 @@ function stateToMap(state: MapState, srcs: FieldOption[], meds: FieldOption[]): 
 }
 
 export const RulesPage = () => {
-
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [matrix, setMatrix] = useState<MapState>({});
-  const [dirty, setDirty] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading]             = useState(true);
+  const [saving, setSaving]               = useState(false);
+  const [syncing, setSyncing]             = useState(false);
+  const [saved, setSaved]                 = useState(false);
+  const [error, setError]                 = useState<string | null>(null);
+  const [matrix, setMatrix]               = useState<MapState>({});
+  const [dirty, setDirty]                 = useState(false);
+  const [isAdmin, setIsAdmin]             = useState(false);
   const [superAdminOnly, setSuperAdminOnly] = useState(false);
-  const [sources, setSources] = useState<FieldOption[]>([]);
-  const [mediums, setMediums] = useState<FieldOption[]>([]);
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [sources, setSources]             = useState<FieldOption[]>([]);
+  const [mediums, setMediums]             = useState<FieldOption[]>([]);
+  const [lastUpdated, setLastUpdated]     = useState<string | null>(null);
   const [lastUpdatedBy, setLastUpdatedBy] = useState<string | null>(null);
+  const [definitions, setDefinitions]     = useState<Definitions>({});
 
   useEffect(() => { loadAll(); }, []);
 
@@ -115,7 +120,6 @@ export const RulesPage = () => {
     setLoading(true);
     setError(null);
     try {
-      // debug removed
       const [configResult, adminResult] = await Promise.all([
         callFn('getConfig'),
         callFn('checkAdmin'),
@@ -123,30 +127,25 @@ export const RulesPage = () => {
 
       setIsAdmin(adminResult?.isAdmin === true);
 
-
       const config = configResult?.config;
       if (config) {
         setSuperAdminOnly(config.superAdminOnly === true);
 
-        // Use synced field values from HubDB, fall back to defaults
         const liveSources = config.fieldValues?.sources?.length > 0
-          ? config.fieldValues.sources
-          : DEFAULT_SOURCES;
+          ? config.fieldValues.sources : DEFAULT_SOURCES;
         const liveMediums = config.fieldValues?.mediums?.length > 0
-          ? config.fieldValues.mediums
-          : DEFAULT_MEDIUMS;
+          ? config.fieldValues.mediums : DEFAULT_MEDIUMS;
         setSources(liveSources);
         setMediums(liveMediums);
 
-        // Use saved map or default
         const map = config.sourcesMediumsMap || DEFAULT_MAP;
         setMatrix(mapToState(map, liveSources, liveMediums));
 
-        // Audit info
         if (config.lastUpdatedDatetime) {
           setLastUpdated(new Date(config.lastUpdatedDatetime).toLocaleString());
         }
         setLastUpdatedBy(config.lastUpdatedByUser || null);
+        setDefinitions(config.definitionsCurrent || {});
       } else {
         setSources(DEFAULT_SOURCES);
         setMediums(DEFAULT_MEDIUMS);
@@ -180,7 +179,6 @@ export const RulesPage = () => {
       if (result?.error) throw new Error(result.error);
       setSaved(true);
       setDirty(false);
-      // Reload to get updated audit fields
       await loadAll();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save.');
@@ -218,19 +216,48 @@ export const RulesPage = () => {
   if (loading) return <LoadingSpinner label="Loading..." />;
 
   const editable = !superAdminOnly || isAdmin;
+  const rowBg = (i: number) => ({ padding: '6px 4px', background: i % 2 === 0 ? '#f5f8fa' : '#ffffff' });
+
+  const ButtonRow = () => (
+    <Flex direction="row" gap="small">
+      {editable && (
+        <>
+          <Button
+            onClick={() => { setMatrix(mapToState(DEFAULT_MAP, sources, mediums)); setDirty(true); setSaved(false); }}
+            variant="secondary"
+          >
+            Reset to defaults
+          </Button>
+          <Button
+            onClick={() => handleSave(editable)}
+            variant="primary"
+            disabled={saving || !dirty}
+          >
+            {saving ? 'Saving...' : 'Save changes'}
+          </Button>
+        </>
+      )}
+      {isAdmin && (
+        <Button onClick={handleSync} variant="secondary" disabled={syncing || !editable}>
+          {syncing ? 'Syncing...' : 'Sync field values'}
+        </Button>
+      )}
+    </Flex>
+  );
 
   return (
     <>
       <PageBreadcrumbs>
-        <PageBreadcrumbs.Current>Value Dependencies and Definitions</PageBreadcrumbs.Current>
+        <PageBreadcrumbs.Current>Field Dependencies</PageBreadcrumbs.Current>
       </PageBreadcrumbs>
-      <PageTitle>Value Dependencies and Definitions</PageTitle>
+      <PageTitle>Field Dependencies</PageTitle>
 
-      <Flex direction="column" gap="large">
+      <Flex direction="column" gap="medium">
         <Text variant="microcopy">
           Source identifies the platform or technical enabler for the traffic — where you are posting or sending content. Medium describes the marketing method or channel type used to deliver that traffic.
         </Text>
 
+        {/* Lock edit toggle — admin only, aligned left with buttons/table */}
         {isAdmin && (
           <Flex direction="row" gap="small" style={{ alignItems: 'center' }}>
             <Toggle
@@ -239,7 +266,10 @@ export const RulesPage = () => {
               checked={superAdminOnly}
               onChange={(checked) => handleToggleSuperAdminOnly(checked)}
             />
-            <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Admin edit only</Text>
+            <Text variant="microcopy">
+              <Text format={{ fontWeight: 'bold' }}>Lock Edit</Text>
+              {' '}(Only app editors will be able to make changes)
+            </Text>
           </Flex>
         )}
 
@@ -250,41 +280,15 @@ export const RulesPage = () => {
         )}
 
         {!editable && (
-          <Alert title="View only" variant="warning">Only super admins can edit dependency rules.</Alert>
+          <Alert title="View only" variant="warning">Editing is locked. Only app editors can make changes.</Alert>
         )}
 
         {error && <Alert title="Error" variant="error">{error}</Alert>}
-        {saved && <Alert title="Saved!" variant="success">Rules updated successfully.</Alert>}
+        {saved && <Alert title="Saved!" variant="success">Dependencies updated successfully.</Alert>}
 
-        <Flex direction="row" gap="small" style={{ margin: "12px 0" }}>
-          {editable && (
-            <>
-              <Button
-                onClick={() => { setMatrix(mapToState(DEFAULT_MAP, sources, mediums)); setDirty(true); setSaved(false); }}
-                variant="secondary"
-              >
-                Reset to defaults
-              </Button>
-              <Button
-                onClick={() => handleSave(editable)}
-                variant="primary"
-                disabled={saving || !dirty}
-              >
-                {saving ? 'Saving...' : 'Save changes'}
-              </Button>
-            </>
-          )}
-          {isAdmin && (
-            <Button
-              onClick={handleSync}
-              variant="secondary"
-              disabled={syncing || !editable}
-            >
-              {syncing ? 'Syncing...' : 'Sync field values'}
-            </Button>
-          )}
-        </Flex>
+        <ButtonRow />
 
+        {/* Dependency matrix */}
         <Flex direction="column" gap="extra-small">
           <Flex direction="row" gap="none">
             <Flex direction="column" gap="none" style={{ minWidth: '160px', width: '160px' }}>
@@ -329,55 +333,65 @@ export const RulesPage = () => {
           ))}
         </Flex>
 
-        <Flex direction="row" gap="small" style={{ margin: "12px 0" }}>
-          {editable && (
-            <>
-              <Button
-                onClick={() => { setMatrix(mapToState(DEFAULT_MAP, sources, mediums)); setDirty(true); setSaved(false); }}
-                variant="secondary"
-              >
-                Reset to defaults
-              </Button>
-              <Button
-                onClick={() => handleSave(editable)}
-                variant="primary"
-                disabled={saving || !dirty}
-              >
-                {saving ? 'Saving...' : 'Save changes'}
-              </Button>
-            </>
-          )}
-          {isAdmin && (
-            <Button
-              onClick={handleSync}
-              variant="secondary"
-              disabled={syncing || !editable}
-            >
-              {syncing ? 'Syncing...' : 'Sync field values'}
-            </Button>
-          )}
-        </Flex>
-      </Flex>
+        <ButtonRow />
 
-      <Text variant="microcopy"> </Text>
-      <Text variant="microcopy"> </Text>
-      <Text variant="microcopy"> </Text>
-
-      <Flex direction="column" gap="small">
-        <Text format={{ fontWeight: 'bold' }}>Medium Definitions</Text>
-        {mediums.map(({ label, value }, i) => (
-          <React.Fragment key={value}>
-            {i > 0 && <Divider />}
-            <Flex direction="row" gap="small" style={{ padding: '6px 4px' }}>
-              <Flex style={{ minWidth: '140px', width: '140px' }}>
-                <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>{label}</Text>
+        {/* Source definitions — read only */}
+        {sources.length > 0 && (
+          <Flex direction="column" gap="extra-small">
+            <Text format={{ fontWeight: 'bold' }}>Source Definitions</Text>
+            <Flex direction="row" gap="none" style={{ padding: '4px 4px' }}>
+              <Flex style={{ minWidth: '160px', width: '160px' }}>
+                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Label</Text>
               </Flex>
               <Flex style={{ flex: 1 }}>
-                <Text variant="microcopy">—</Text>
+                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Description</Text>
               </Flex>
             </Flex>
-          </React.Fragment>
-        ))}
+            <Divider />
+            {sources.map(({ label, value }, i) => (
+              <React.Fragment key={value}>
+                {i > 0 && <Divider />}
+                <Flex direction="row" gap="none" style={rowBg(i)}>
+                  <Flex style={{ minWidth: '160px', width: '160px' }}>
+                    <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>{label}</Text>
+                  </Flex>
+                  <Flex style={{ flex: 1 }}>
+                    <Text variant="microcopy">{definitions.sources?.[value] || '—'}</Text>
+                  </Flex>
+                </Flex>
+              </React.Fragment>
+            ))}
+          </Flex>
+        )}
+
+        {/* Medium definitions — read only */}
+        {mediums.length > 0 && (
+          <Flex direction="column" gap="extra-small">
+            <Text format={{ fontWeight: 'bold' }}>Medium Definitions</Text>
+            <Flex direction="row" gap="none" style={{ padding: '4px 4px' }}>
+              <Flex style={{ minWidth: '160px', width: '160px' }}>
+                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Label</Text>
+              </Flex>
+              <Flex style={{ flex: 1 }}>
+                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>Description</Text>
+              </Flex>
+            </Flex>
+            <Divider />
+            {mediums.map(({ label, value }, i) => (
+              <React.Fragment key={value}>
+                {i > 0 && <Divider />}
+                <Flex direction="row" gap="none" style={rowBg(i)}>
+                  <Flex style={{ minWidth: '160px', width: '160px' }}>
+                    <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>{label}</Text>
+                  </Flex>
+                  <Flex style={{ flex: 1 }}>
+                    <Text variant="microcopy">{definitions.mediums?.[value] || '—'}</Text>
+                  </Flex>
+                </Flex>
+              </React.Fragment>
+            ))}
+          </Flex>
+        )}
       </Flex>
     </>
   );

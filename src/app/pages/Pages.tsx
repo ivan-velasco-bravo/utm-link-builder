@@ -14,7 +14,7 @@ const PageLayout = ({ children }: { children: any }) => (
     <PageHeader>
       <PageHeader.SecondaryActions>
         <PageHeader.PageLink to="/">Create UTM Link</PageHeader.PageLink>
-        <PageHeader.PageLink to="/rules">Manage Dependencies</PageHeader.PageLink>
+        <PageHeader.PageLink to="/rules">Field Dependencies</PageHeader.PageLink>
         <PageHeader.PageLink to="/definitions">Definitions</PageHeader.PageLink>
       </PageHeader.SecondaryActions>
     </PageHeader>

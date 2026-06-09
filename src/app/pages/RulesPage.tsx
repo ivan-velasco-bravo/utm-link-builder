@@ -4,6 +4,7 @@ import {
   Divider,
   Flex,
   Heading,
+  Link,
   Text,
   Alert,
   LoadingSpinner,
@@ -259,8 +260,8 @@ export const RulesPage = () => {
           Define which UTM Mediums are available for each UTM Source. When a source is selected on the Create UTM Link page, only its allowed mediums will appear. Use this page to configure those dependencies, then save to apply them across the app. Sync field values to pull the latest source and medium options from HubSpot.
         </Text>
 
-        <Flex direction="row" gap="none" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <Flex direction="column" gap="none">
+        <Flex direction="row" gap="small">
+          <Flex direction="column" gap="none" style={{ flex: 1 }}>
             {lastUpdated && (
               <Text variant="microcopy">
                 Last updated: {lastUpdated}{lastUpdatedBy ? ` by ${lastUpdatedBy}` : ''}
@@ -270,13 +271,10 @@ export const RulesPage = () => {
           {isAdmin && (
             <Flex direction="row" gap="extra-small" style={{ alignItems: 'center' }}>
               <Text format={{ fontWeight: 'bold' }}>LOCK</Text>
-              <Button
-                variant="transparent"
-                size="xs"
+              <Link
+                href="#"
                 overlay={<Tooltip>Only app editors will be able to make changes</Tooltip>}
-              >
-                ⓘ
-              </Button>
+              >ⓘ</Link>
               <Toggle
                 name="super_admin_only"
                 label=""
@@ -349,7 +347,7 @@ export const RulesPage = () => {
           <Flex direction="column" gap="extra-small" style={{ paddingTop: "24px" }}>
             <Heading>Source Definitions:</Heading>
             <Flex direction="row" gap="none" style={{ padding: '4px 4px' }}>
-              <Flex style={{ minWidth: '160px', width: '160px' }}>
+              <Flex style={{ minWidth: '140px', width: '140px' }}>
                 <Text format={{ fontWeight: 'bold' }}>Label</Text>
               </Flex>
               <Flex style={{ flex: 1 }}>
@@ -378,7 +376,7 @@ export const RulesPage = () => {
           <Flex direction="column" gap="extra-small" style={{ paddingTop: "24px" }}>
             <Heading>Medium Definitions:</Heading>
             <Flex direction="row" gap="none" style={{ padding: '4px 4px' }}>
-              <Flex style={{ minWidth: '160px', width: '160px' }}>
+              <Flex style={{ minWidth: '140px', width: '140px' }}>
                 <Text format={{ fontWeight: 'bold' }}>Label</Text>
               </Flex>
               <Flex style={{ flex: 1 }}>

@@ -1,5 +1,6 @@
 import {
   Button,
+  DateInput,
   Flex,
   Input,
   Select,
@@ -110,6 +111,23 @@ function toHubSpotDateValue(val: string): string {
   const parts = parseDateParts(val);
   if (!parts) return '';
   return String(Date.UTC(parts.year, parts.month - 1, parts.day));
+}
+
+interface DateInputValue {
+  year: number;
+  month: number;
+  date: number;
+}
+
+function toDateInputValue(val: string): DateInputValue | null {
+  const parts = parseDateParts(val);
+  if (!parts) return null;
+
+  return {
+    year: parts.year,
+    month: parts.month - 1,
+    date: parts.day,
+  };
 }
 
 interface CampaignOption {
@@ -292,6 +310,15 @@ export const NewUtmBuilderPage = () => {
     }
     setSuccess(false);
     setError(null);
+  };
+
+  const handleDatePickerChange = (val: DateInputValue | null) => {
+    if (!val) {
+      handleDateChange('');
+      return;
+    }
+
+    handleDateChange(`${val.year}-${pad2(val.month + 1)}-${pad2(val.date)}`);
   };
 
   const handleUrlChange = (val: string) => {
@@ -492,12 +519,14 @@ export const NewUtmBuilderPage = () => {
             <Select label="UTM Medium" name="utm_medium" value={form.utm_medium} onChange={val => handleChange('utm_medium', val)} options={filteredMediumOptions} placeholder={form.utm_source ? "Select medium..." : "Select source first..."} required />
           </Flex>
 
-          <Input
+          <DateInput
             label="Content Activation Date"
             name="content_activation_date"
-            value={form.content_activation_date}
-            onChange={handleDateChange}
-            placeholder="YYYY-MM-DD"
+            value={toDateInputValue(form.content_activation_date)}
+            onChange={handleDatePickerChange}
+            format="YYYY-MM-DD"
+            clearButtonLabel="Clear"
+            todayButtonLabel="Today"
             required
             error={!!dateError}
             validationMessage={dateError || 'Used as the date prefix for utm_content.'}

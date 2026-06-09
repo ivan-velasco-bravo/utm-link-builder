@@ -171,8 +171,17 @@ exports.main = async (context) => {
 
       // Check if current user can edit
       case 'checkAdmin': {
+        const userEmail = context.userEmail || context.user?.email || 'not_found';
+        const userId = context.userId || context.user?.id || 'not_found';
+        const { row } = await getConfigRow(token);
+        const editorEmailsRaw = row?.values?.editor_emails || 'empty';
+        let isSuperAdmin = false;
+        if (userId && userId !== 'not_found') {
+          const r = await apiRequest('GET', `/settings/v3/users/${userId}`, null, token);
+          isSuperAdmin = r.data?.superAdmin === true;
+        }
         const allowed = await canEdit(context, token);
-        return { isAdmin: allowed };
+        return { isAdmin: allowed, debug: { userEmail, userId, editorEmailsRaw, isSuperAdmin } };
       }
 
       // Get source/medium/placement options (used by HomePage)

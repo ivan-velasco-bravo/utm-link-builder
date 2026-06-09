@@ -115,14 +115,14 @@ export const RulesPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const debugResult = await callFn('debug');
-      setError('DEBUG: ' + JSON.stringify(debugResult));
+      // debug removed
       const [configResult, adminResult] = await Promise.all([
         callFn('getConfig'),
         callFn('checkAdmin'),
       ]);
 
       setIsAdmin(adminResult?.isAdmin === true);
+      if (adminResult?.debug) setError('DEBUG: ' + JSON.stringify(adminResult.debug));
 
       const config = configResult?.config;
       if (config) {

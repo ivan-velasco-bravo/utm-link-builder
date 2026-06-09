@@ -269,23 +269,20 @@ export const RulesPage = () => {
         {saved && <Alert title="Saved!" variant="success">Dependencies updated successfully.</Alert>}
 
         {isAdmin && (
-          <Flex direction="row" gap="small" style={{ alignItems: 'center' }}>
-            <Text variant="microcopy" format={{ fontWeight: 'bold' }}> </Text>
-            <Flex direction="row" gap="extra-small" style={{ alignItems: 'center' }}>
-              <Text format={{ fontWeight: 'bold' }}>LOCK</Text>
-              <Button
-                variant="secondary"
-                size="xs"
-                overlay={<Tooltip>Only app editors will be able to make changes</Tooltip>}
-              >ⓘ</Button>
-              <Toggle
-                name="super_admin_only"
-                label=""
-                labelDisplay="hidden"
-                checked={superAdminOnly}
-                onChange={(checked) => handleToggleSuperAdminOnly(checked)}
-              />
-            </Flex>
+          <Flex direction="row" gap="extra-small" style={{ justifyContent: 'flex-end', alignItems: 'center' }}>
+            <Text format={{ fontWeight: 'bold' }}>LOCK</Text>
+            <Button
+              variant="secondary"
+              size="xs"
+              overlay={<Tooltip>Only app editors will be able to make changes</Tooltip>}
+            >ⓘ</Button>
+            <Toggle
+              name="super_admin_only"
+              label=""
+              labelDisplay="hidden"
+              checked={superAdminOnly}
+              onChange={(checked) => handleToggleSuperAdminOnly(checked)}
+            />
           </Flex>
         )}
 

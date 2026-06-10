@@ -443,7 +443,7 @@ export const NewUtmBuilderPage = () => {
     try {
       const destUrl = normalizeUrl(form.destination_url);
       const properties: Record<string, string> = {
-        content_piece_name: form.content_piece_name,
+        content_piece_name: taggedUrl,
         destination_url: destUrl,
         content_activation_date: toHubSpotDateValue(form.content_activation_date),
         utm_medium: form.utm_medium,

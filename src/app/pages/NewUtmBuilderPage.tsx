@@ -30,18 +30,22 @@ function toSlug(val: string): string {
   return val.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-_]/g, '');
 }
 
-function toWebsiteSource(val: string): string {
-  return val
-    .trim()
-    .toLowerCase()
-    .replace(/^https?:\/\//, '')
-    .replace(/^www\./, '')
-    .split(/[/?#]/)[0]
-    .replace(/\s+/g, '-');
-}
-
 function toSourceWebsiteValue(val: string): string {
-  return toSlug(toWebsiteSource(val).replace(/\./g, '-')).slice(0, 20);
+  if (!val) return '';
+  try {
+    const url = new URL(normalizeUrl(val));
+    return url.hostname
+      .toLowerCase()
+      .replace(/^www\./, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  } catch {
+    return val
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
 }
 
 import { DEFAULT_MAP } from './RulesPage.tsx';
@@ -223,6 +227,7 @@ export const NewUtmBuilderPage = () => {
   const taggedUrl = (() => {
     if (!form.destination_url || !selectedSource || !form.utm_medium || !form.campaign_utm || !utmContent || !form.utm_topic) return '';
     if (!isValidUrl(form.destination_url)) return '';
+    if (form.use_source_website && !isValidUrl(form.source_website)) return '';
     if (!isValidIsoDate(form.content_activation_date)) return '';
     try {
       const url = new URL(normalizeUrl(form.destination_url));
@@ -389,9 +394,7 @@ export const NewUtmBuilderPage = () => {
         return;
       }
     }
-    if (field === 'source_website') {
-      setForm(prev => ({ ...prev, source_website: toSourceWebsiteValue(value) }));
-    } else if (field === 'content_piece_name' || field === 'utm_topic') {
+    if (field === 'content_piece_name' || field === 'utm_topic') {
       const slugged = toSlug(value);
       const nextError = slugged && !isValidSlug(slugged) ? 'Lowercase letters, numbers, hyphens and underscores only.' : '';
       if (field === 'content_piece_name') {
@@ -423,6 +426,7 @@ export const NewUtmBuilderPage = () => {
     if (!isValidIsoDate(form.content_activation_date)) { setError('Content Activation Date must use YYYY-MM-DD.'); return false; }
     if (form.use_source_website) {
       if (!selectedSource) { setError('Source Website is required.'); return false; }
+      if (!isValidUrl(form.source_website)) { setError('Source Website must be a valid URL.'); return false; }
     } else if (!form.utm_source) { setError('UTM Source is required.'); return false; }
     if (!form.utm_medium) { setError('UTM Medium is required.'); return false; }
     if (!form.content_piece_name) { setError('Content Piece Name is required.'); return false; }
@@ -449,7 +453,7 @@ export const NewUtmBuilderPage = () => {
         tagged_url: taggedUrl,
       };
       if (form.use_source_website) {
-        properties.source_website = selectedSource;
+        properties.source_website = normalizeUrl(form.source_website);
       } else {
         properties.utm_source = form.utm_source;
       }
@@ -589,7 +593,16 @@ export const NewUtmBuilderPage = () => {
           <Flex direction="row" gap="small">
             <Select label="UTM Source" name="utm_source" value={form.utm_source} onChange={val => handleChange('utm_source', val)} options={sourceOptions} placeholder={form.use_source_website ? "Using source website..." : "Select source..."} required={!form.use_source_website} readOnly={form.use_source_website} />
             {form.use_source_website && (
-              <Input label="Source Website" name="source_website" value={form.source_website} onChange={val => handleChange('source_website', val)} placeholder="e.g. partner-site" required validationMessage={`Max 20 characters. ${selectedSource.length}/20${selectedSource ? `. utm_source=${selectedSource}` : ''}`} />
+              <Input
+                label="Source Website"
+                name="source_website"
+                value={form.source_website}
+                onChange={val => handleChange('source_website', val)}
+                placeholder="e.g. partner-site.com"
+                required
+                error={!!form.source_website && !isValidUrl(form.source_website)}
+                validationMessage={form.source_website && !isValidUrl(form.source_website) ? 'Enter a valid URL.' : selectedSource ? `utm_source=${selectedSource}` : undefined}
+              />
             )}
             <Select label="UTM Medium" name="utm_medium" value={form.utm_medium} onChange={val => handleChange('utm_medium', val)} options={filteredMediumOptions} placeholder={form.use_source_website || form.utm_source ? "Select medium..." : "Select source first..."} required />
           </Flex>

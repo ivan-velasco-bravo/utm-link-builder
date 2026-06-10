@@ -14,6 +14,7 @@ import {
   LoadingSpinner,
   Select,
   Text,
+  Tile,
   Tooltip,
   hubspot,
   useExtensionContext,
@@ -69,18 +70,22 @@ function toSlug(val: string): string {
   return val.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-_]/g, '');
 }
 
-function toWebsiteSource(val: string): string {
-  return val
-    .trim()
-    .toLowerCase()
-    .replace(/^https?:\/\//, '')
-    .replace(/^www\./, '')
-    .split(/[/?#]/)[0]
-    .replace(/\s+/g, '-');
-}
-
 function toSourceWebsiteValue(val: string): string {
-  return toSlug(toWebsiteSource(val).replace(/\./g, '-')).slice(0, 20);
+  if (!val) return '';
+  try {
+    const url = new URL(normalizeUrl(val));
+    return url.hostname
+      .toLowerCase()
+      .replace(/^www\./, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  } catch {
+    return val
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
 }
 
 function isValidUrl(val: string): boolean {
@@ -211,6 +216,7 @@ function buildTaggedUrl(row: LinkRow, campaignUtm: string): string {
 
   if (!row.destination_url || !source || !row.utm_medium || !campaignUtm || !utmContent) return '';
   if (!isValidUrl(row.destination_url) || !isValidIsoDate(row.content_activation_date)) return '';
+  if (row.use_source_website && !isValidUrl(row.source_website)) return '';
 
   try {
     const url = new URL(normalizeUrl(row.destination_url));
@@ -352,11 +358,6 @@ export const MassUtmBuilderPage = () => {
       return;
     }
 
-    if (field === 'source_website') {
-      updateRow(id, { source_website: toSourceWebsiteValue(value) });
-      return;
-    }
-
     if (field === 'content_piece_name' || field === 'utm_topic') {
       updateRow(id, { [field]: toSlug(value) } as Partial<LinkRow>);
       return;
@@ -438,6 +439,7 @@ export const MassUtmBuilderPage = () => {
       if (!isValidIsoDate(row.content_activation_date)) return `${label}: Content Activation Date must use YYYY-MM-DD.`;
       if (row.use_source_website) {
         if (!getRowSource(row)) return `${label}: Source Website is required.`;
+        if (!isValidUrl(row.source_website)) return `${label}: Source Website must be a valid URL.`;
       } else if (!row.utm_source) return `${label}: UTM Source is required.`;
       if (!row.utm_medium) return `${label}: UTM Medium is required.`;
       if (!row.content_piece_name) return `${label}: Content Piece Name is required.`;
@@ -462,7 +464,7 @@ export const MassUtmBuilderPage = () => {
     };
 
     if (row.use_source_website) {
-      properties.source_website = getRowSource(row);
+      properties.source_website = normalizeUrl(row.source_website);
     } else {
       properties.utm_source = row.utm_source;
     }
@@ -517,7 +519,7 @@ export const MassUtmBuilderPage = () => {
         {error && <Alert title="Error" variant="error">{error}</Alert>}
         {success && <Alert title="Saved!" variant="success">{success}</Alert>}
 
-        <Flex direction="row" gap="small" align="end" wrap="wrap">
+        <Flex direction="row" gap="large" align="end" wrap="wrap">
           <Box flex={2}>
             <Select label="Campaign" name="campaign_id" value={campaignId} onChange={value => handleCampaignChange(String(value))} options={campaignOptions} placeholder="Search campaigns..." required />
           </Box>
@@ -545,12 +547,12 @@ export const MassUtmBuilderPage = () => {
           </Alert>
         )}
 
-        <Divider />
-
         <Flex direction="row" gap="small">
           <Button onClick={addRow} variant="secondary">Add link</Button>
           <Button onClick={handleSaveAll} variant="primary" disabled={saving || rows.length === 0}>{saving ? 'Saving...' : `Save ${rows.length} link${rows.length === 1 ? '' : 's'}`}</Button>
         </Flex>
+
+        <Divider />
 
         {rows.map((row, index) => {
           const taggedUrl = buildTaggedUrl(row, campaignUtm);
@@ -558,185 +560,183 @@ export const MassUtmBuilderPage = () => {
           const mediumPlaceholder = row.use_source_website || row.utm_source ? 'Select medium...' : 'Select source first...';
 
           return (
-            <Flex
-              key={row.id}
-              direction="column"
-              gap="medium"
-              style={{
-                backgroundColor: '#eef7ff',
-                border: '1px solid #c8def7',
-                borderRadius: '6px',
-                padding: '16px',
-              }}
-            >
-              <Flex direction="row" gap="small" justify="between" align="center">
-                <Text format={{ fontWeight: 'bold' }}>Link {index + 1}</Text>
-                <Flex direction="row" gap="small">
-                  <Button onClick={() => cloneRow(row.id)} variant="secondary" size="sm">Clone</Button>
-                  <Button onClick={() => removeRow(row.id)} variant="secondary" size="sm">Remove</Button>
+            <Tile key={row.id} compact>
+              <Flex direction="column" gap="medium">
+                <Flex direction="row" gap="small" align="center">
+                  <Box flex="none">
+                    <Text format={{ fontWeight: 'bold' }}>Link {index + 1}</Text>
+                  </Box>
+                  <Box flex={1}>
+                    <Flex direction="row" gap="small" justify="end">
+                      <Button onClick={() => cloneRow(row.id)} variant="secondary" size="sm">Clone</Button>
+                      <Button onClick={() => removeRow(row.id)} variant="secondary" size="sm">Remove</Button>
+                    </Flex>
+                  </Box>
+                </Flex>
+
+                <Flex direction="row" gap="large" wrap="wrap">
+                  <Box flex={2}>
+                    <Flex direction="column" gap="small">
+                      <Flex direction="row" gap="small" wrap="wrap">
+                        <Box flex={2}>
+                          <Input
+                            label="Destination URL"
+                            name={`destination_url_${row.id}`}
+                            value={row.destination_url}
+                            onChange={value => handleRowChange(row.id, 'destination_url', value)}
+                            placeholder="runware.ai/pricing"
+                            required
+                          />
+                        </Box>
+                        <Box flex={2}>
+                          {row.use_source_website ? (
+                            <Input
+                              label="Source Website"
+                              name={`source_website_${row.id}`}
+                              value={row.source_website}
+                              onChange={value => handleRowChange(row.id, 'source_website', value)}
+                              placeholder="e.g. partner-site.com"
+                              required
+                              error={!!row.source_website && !isValidUrl(row.source_website)}
+                              validationMessage={row.source_website && !isValidUrl(row.source_website) ? 'Enter a valid URL.' : selectedSource ? `utm_source=${selectedSource}` : undefined}
+                            />
+                          ) : (
+                            <Select
+                              label="UTM Source"
+                              name={`utm_source_${row.id}`}
+                              value={row.utm_source}
+                              onChange={value => handleRowChange(row.id, 'utm_source', String(value))}
+                              options={sourceOptions}
+                              placeholder="Select source..."
+                              required
+                            />
+                          )}
+                        </Box>
+                        <Box flex={2}>
+                          <Select
+                            label="UTM Medium"
+                            name={`utm_medium_${row.id}`}
+                            value={row.utm_medium}
+                            onChange={value => handleRowChange(row.id, 'utm_medium', String(value))}
+                            options={getFilteredMediumOptions(row)}
+                            placeholder={mediumPlaceholder}
+                            required
+                          />
+                        </Box>
+                      </Flex>
+
+                      <Flex direction="row" gap="small" wrap="wrap">
+                        <Box flex={1}>
+                          <DateInput
+                            label="Content Activation Date"
+                            name={`content_activation_date_${row.id}`}
+                            value={toDateInputValue(row.content_activation_date) || undefined}
+                            onChange={value => handleRowDateChange(row.id, value)}
+                            format="YYYY-MM-DD"
+                            clearButtonLabel="Clear"
+                            todayButtonLabel="Today"
+                            required
+                            validationMessage="Used as the date prefix for utm_content."
+                          />
+                        </Box>
+                        <Box flex={2}>
+                          <Input
+                            label="Content Piece Name"
+                            name={`content_piece_name_${row.id}`}
+                            value={row.content_piece_name}
+                            onChange={value => handleRowChange(row.id, 'content_piece_name', value)}
+                            placeholder="e.g. q3-brand-video"
+                            required
+                            error={!!row.content_piece_name && !isValidSlug(row.content_piece_name)}
+                            validationMessage="Lowercase, no spaces. Combined with placement to form utm_content."
+                          />
+                        </Box>
+                        <Box flex={1}>
+                          <Select
+                            label="Link Placement"
+                            name={`link_placement_${row.id}`}
+                            value={row.link_placement}
+                            onChange={value => handleRowChange(row.id, 'link_placement', String(value))}
+                            options={placementOptions}
+                            placeholder="Select placement..."
+                          />
+                        </Box>
+                      </Flex>
+
+                      <Flex direction="row" gap="small" wrap="wrap">
+                        <Box flex={1}>
+                          <Input
+                            label="UTM Topic"
+                            name={`utm_topic_${row.id}`}
+                            value={row.utm_topic}
+                            onChange={value => handleRowChange(row.id, 'utm_topic', value)}
+                            placeholder="e.g. model-theme"
+                            error={!!row.utm_topic && !isValidSlug(row.utm_topic)}
+                            validationMessage="Lowercase, no spaces."
+                          />
+                        </Box>
+                        <Box flex={1}>
+                          <Input
+                            label="UTM Term"
+                            name={`utm_term_${row.id}`}
+                            value={row.utm_term}
+                            onChange={value => handleRowChange(row.id, 'utm_term', toSlug(value).slice(0, 20))}
+                            placeholder="e.g. ai-image-generation"
+                            validationMessage={`Max 20 characters. ${row.utm_term.length > 0 ? `${row.utm_term.length}/20` : ''}`}
+                          />
+                        </Box>
+                        <Box flex={1}>
+                          <Flex direction="column" gap="extra-small">
+                            <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>Website Source</Text>
+                            <Flex direction="row" gap="extra-small" align="center">
+                              <Checkbox
+                                name={`website_source_${row.id}`}
+                                value="website_source"
+                                checked={row.use_source_website}
+                                onChange={checked => handleWebsiteSourceToggle(row.id, checked)}
+                                variant="small"
+                              >
+                                Website Source
+                              </Checkbox>
+                              <Button
+                                variant="transparent"
+                                size="xs"
+                                overlay={<Tooltip>Check this when entering a specific URL source, such as partners, sponsors, or syndicated content.</Tooltip>}
+                              >
+                                <Icon name="info" screenReaderText="Website Source help" />
+                              </Button>
+                            </Flex>
+                          </Flex>
+                        </Box>
+                      </Flex>
+                    </Flex>
+                  </Box>
+
+                  <Box flex={1}>
+                    <Alert title="UTM Preview" variant="info">
+                      <Flex direction="column" gap="small">
+                        <DescriptionList direction="row">
+                          <DescriptionListItem label="utm_source">{selectedSource || '-'}</DescriptionListItem>
+                          <DescriptionListItem label="utm_medium">{row.utm_medium || '-'}</DescriptionListItem>
+                          <DescriptionListItem label="utm_campaign">{campaignUtm || '-'}</DescriptionListItem>
+                          <DescriptionListItem label="utm_content">{getRowUtmContent(row) || '-'}</DescriptionListItem>
+                          <DescriptionListItem label="utm_topic">{row.utm_topic || '-'}</DescriptionListItem>
+                          <DescriptionListItem label="utm_term">{row.utm_term || '-'}</DescriptionListItem>
+                        </DescriptionList>
+
+                        <Text format={{ fontWeight: 'demibold' }}>Tagged URL</Text>
+                        {taggedUrl ? (
+                          <Text truncate={{ tooltipText: taggedUrl }}>{taggedUrl}</Text>
+                        ) : (
+                          <Text variant="microcopy">Fill in required fields to generate this URL.</Text>
+                        )}
+                        <Button onClick={() => handleCopyTaggedUrl(taggedUrl)} variant="secondary" disabled={!taggedUrl}>Copy URL</Button>
+                      </Flex>
+                    </Alert>
+                  </Box>
                 </Flex>
               </Flex>
-
-              <Flex direction="row" gap="large" wrap="wrap">
-                <Box flex={2}>
-                  <Flex direction="column" gap="small">
-                    <Flex direction="row" gap="small" wrap="wrap">
-                      <Box flex={2}>
-                        <Input
-                          label="Destination URL"
-                          name={`destination_url_${row.id}`}
-                          value={row.destination_url}
-                          onChange={value => handleRowChange(row.id, 'destination_url', value)}
-                          placeholder="runware.ai/pricing"
-                          required
-                        />
-                      </Box>
-                      <Box flex={2}>
-                        {row.use_source_website ? (
-                          <Input
-                            label="Source Website"
-                            name={`source_website_${row.id}`}
-                            value={row.source_website}
-                            onChange={value => handleRowChange(row.id, 'source_website', value)}
-                            placeholder="e.g. partner-site"
-                            required
-                            validationMessage={`Max 20 characters. ${selectedSource.length}/20${selectedSource ? `. utm_source=${selectedSource}` : ''}`}
-                          />
-                        ) : (
-                          <Select
-                            label="UTM Source"
-                            name={`utm_source_${row.id}`}
-                            value={row.utm_source}
-                            onChange={value => handleRowChange(row.id, 'utm_source', String(value))}
-                            options={sourceOptions}
-                            placeholder="Select source..."
-                            required
-                          />
-                        )}
-                      </Box>
-                      <Box flex={2}>
-                        <Select
-                          label="UTM Medium"
-                          name={`utm_medium_${row.id}`}
-                          value={row.utm_medium}
-                          onChange={value => handleRowChange(row.id, 'utm_medium', String(value))}
-                          options={getFilteredMediumOptions(row)}
-                          placeholder={mediumPlaceholder}
-                          required
-                        />
-                      </Box>
-                    </Flex>
-
-                    <Flex direction="row" gap="small" wrap="wrap">
-                      <Box flex={1}>
-                        <DateInput
-                          label="Content Activation Date"
-                          name={`content_activation_date_${row.id}`}
-                          value={toDateInputValue(row.content_activation_date) || undefined}
-                          onChange={value => handleRowDateChange(row.id, value)}
-                          format="YYYY-MM-DD"
-                          clearButtonLabel="Clear"
-                          todayButtonLabel="Today"
-                          required
-                          validationMessage="Used as the date prefix for utm_content."
-                        />
-                      </Box>
-                      <Box flex={2}>
-                        <Input
-                          label="Content Piece Name"
-                          name={`content_piece_name_${row.id}`}
-                          value={row.content_piece_name}
-                          onChange={value => handleRowChange(row.id, 'content_piece_name', value)}
-                          placeholder="e.g. q3-brand-video"
-                          required
-                          error={!!row.content_piece_name && !isValidSlug(row.content_piece_name)}
-                          validationMessage="Lowercase, no spaces. Combined with placement to form utm_content."
-                        />
-                      </Box>
-                      <Box flex={1}>
-                        <Select
-                          label="Link Placement"
-                          name={`link_placement_${row.id}`}
-                          value={row.link_placement}
-                          onChange={value => handleRowChange(row.id, 'link_placement', String(value))}
-                          options={placementOptions}
-                          placeholder="Select placement..."
-                        />
-                      </Box>
-                    </Flex>
-
-                    <Flex direction="row" gap="small" wrap="wrap">
-                      <Box flex={1}>
-                        <Input
-                          label="UTM Topic"
-                          name={`utm_topic_${row.id}`}
-                          value={row.utm_topic}
-                          onChange={value => handleRowChange(row.id, 'utm_topic', value)}
-                          placeholder="e.g. model-theme"
-                          error={!!row.utm_topic && !isValidSlug(row.utm_topic)}
-                          validationMessage="Lowercase, no spaces."
-                        />
-                      </Box>
-                      <Box flex={1}>
-                        <Input
-                          label="UTM Term"
-                          name={`utm_term_${row.id}`}
-                          value={row.utm_term}
-                          onChange={value => handleRowChange(row.id, 'utm_term', toSlug(value).slice(0, 20))}
-                          placeholder="e.g. ai-image-generation"
-                          validationMessage={`Max 20 characters. ${row.utm_term.length > 0 ? `${row.utm_term.length}/20` : ''}`}
-                        />
-                      </Box>
-                      <Box flex={1}>
-                        <Flex direction="column" gap="extra-small">
-                          <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>Website Source</Text>
-                          <Flex direction="row" gap="extra-small" align="center">
-                            <Checkbox
-                              name={`website_source_${row.id}`}
-                              value="website_source"
-                              checked={row.use_source_website}
-                              onChange={checked => handleWebsiteSourceToggle(row.id, checked)}
-                              variant="small"
-                            >
-                              Website Source
-                            </Checkbox>
-                            <Button
-                              variant="transparent"
-                              size="xs"
-                              overlay={<Tooltip>Check this when entering a specific URL source, such as partners, sponsors, or syndicated content.</Tooltip>}
-                            >
-                              <Icon name="info" screenReaderText="Website Source help" />
-                            </Button>
-                          </Flex>
-                        </Flex>
-                      </Box>
-                    </Flex>
-                  </Flex>
-                </Box>
-
-                <Box flex={1}>
-                  <Flex direction="column" gap="small">
-                    <Text format={{ fontWeight: 'demibold' }}>UTM Preview</Text>
-                    <DescriptionList direction="row">
-                      <DescriptionListItem label="utm_source">{selectedSource || '-'}</DescriptionListItem>
-                      <DescriptionListItem label="utm_medium">{row.utm_medium || '-'}</DescriptionListItem>
-                      <DescriptionListItem label="utm_campaign">{campaignUtm || '-'}</DescriptionListItem>
-                      <DescriptionListItem label="utm_content">{getRowUtmContent(row) || '-'}</DescriptionListItem>
-                      <DescriptionListItem label="utm_topic">{row.utm_topic || '-'}</DescriptionListItem>
-                      <DescriptionListItem label="utm_term">{row.utm_term || '-'}</DescriptionListItem>
-                    </DescriptionList>
-
-                    <Text format={{ fontWeight: 'demibold' }}>Tagged URL</Text>
-                    {taggedUrl ? (
-                      <Text truncate={{ tooltipText: taggedUrl }}>{taggedUrl}</Text>
-                    ) : (
-                      <Text variant="microcopy">Fill in required fields to generate this URL.</Text>
-                    )}
-                    <Button onClick={() => handleCopyTaggedUrl(taggedUrl)} variant="secondary" disabled={!taggedUrl}>Copy URL</Button>
-                  </Flex>
-                </Box>
-              </Flex>
-            </Flex>
+            </Tile>
           );
         })}
 

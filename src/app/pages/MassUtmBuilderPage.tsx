@@ -240,7 +240,7 @@ function buildTaggedUrl(row: LinkRow, campaignUtm: string): string {
 }
 
 function buildCampaignUrl(portalId: number, campaignId: string): string {
-  return `https://app-eu1.hubspot.com/marketing/${portalId}/campaigns/${encodeURIComponent(campaignId)}`;
+  return `https://app-eu1.hubspot.com/marketing/${portalId}/campaigns/${encodeURIComponent(campaignId)}/assets`;
 }
 
 function buildUtmLinkRecordUrl(portalId: number, recordId: string): string {
@@ -570,13 +570,13 @@ export const MassUtmBuilderPage = () => {
           </Box>
           <Box flex={1}>
             <Flex direction="column" gap="extra-small">
-              <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>Activation month</Text>
+              <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>Start Month</Text>
               <Text>{campaignActivationMonth || '-'}</Text>
             </Flex>
           </Box>
           <Box flex={2}>
             <Flex direction="column" gap="extra-small">
-              <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>utm_campaign</Text>
+              <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>UTM Campaign</Text>
               <Text truncate={{ tooltipText: campaignUtm || '-' }}>{campaignUtm || '-'}</Text>
             </Flex>
           </Box>
@@ -771,15 +771,15 @@ export const MassUtmBuilderPage = () => {
                           <Box flex={1}>
                             <Flex direction="column" gap="small">
                               <Flex direction="column" gap="extra-small">
-                                <Text variant="microcopy">utm_source</Text>
+                                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>utm_source</Text>
                                 <Text>{selectedSource || '-'}</Text>
                               </Flex>
                               <Flex direction="column" gap="extra-small">
-                                <Text variant="microcopy">utm_campaign</Text>
+                                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>utm_campaign</Text>
                                 <Text truncate={{ tooltipText: campaignUtm || '-' }}>{campaignUtm || '-'}</Text>
                               </Flex>
                               <Flex direction="column" gap="extra-small">
-                                <Text variant="microcopy">utm_topic</Text>
+                                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>utm_topic</Text>
                                 <Text>{row.utm_topic || '-'}</Text>
                               </Flex>
                             </Flex>
@@ -787,15 +787,15 @@ export const MassUtmBuilderPage = () => {
                           <Box flex={1}>
                             <Flex direction="column" gap="small">
                               <Flex direction="column" gap="extra-small">
-                                <Text variant="microcopy">utm_medium</Text>
+                                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>utm_medium</Text>
                                 <Text>{row.utm_medium || '-'}</Text>
                               </Flex>
                               <Flex direction="column" gap="extra-small">
-                                <Text variant="microcopy">utm_content</Text>
+                                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>utm_content</Text>
                                 <Text truncate={{ tooltipText: getRowUtmContent(row) || '-' }}>{getRowUtmContent(row) || '-'}</Text>
                               </Flex>
                               <Flex direction="column" gap="extra-small">
-                                <Text variant="microcopy">utm_term</Text>
+                                <Text variant="microcopy" format={{ fontWeight: 'bold' }}>utm_term</Text>
                                 <Text>{row.utm_term || '-'}</Text>
                               </Flex>
                             </Flex>

@@ -240,7 +240,7 @@ export const NewUtmBuilderPage = () => {
     : '';
 
   const taggedUrl = (() => {
-    if (!form.destination_url || !selectedSource || !form.utm_medium || !form.campaign_utm || !utmContent || !form.utm_topic) return '';
+    if (!form.destination_url || !selectedSource || !form.utm_medium || !form.campaign_utm || !utmContent) return '';
     if (!isValidUrl(form.destination_url)) return '';
     if (form.use_source_website && !isValidUrl(form.source_website)) return '';
     if (!isValidIsoDate(form.content_activation_date)) return '';
@@ -251,7 +251,7 @@ export const NewUtmBuilderPage = () => {
       url.searchParams.set('utm_campaign', form.campaign_utm);
       url.searchParams.set('utm_content', utmContent);
       if (form.utm_term) url.searchParams.set('utm_term', form.utm_term);
-      url.searchParams.set('utm_topic', form.utm_topic);
+      if (form.utm_topic) url.searchParams.set('utm_topic', form.utm_topic);
       return url.toString();
     } catch { return ''; }
   })();
@@ -452,8 +452,7 @@ export const NewUtmBuilderPage = () => {
     if (!form.utm_medium) { setError('UTM Medium is required.'); return false; }
     if (!form.content_piece_name) { setError('Content Piece Name is required.'); return false; }
     if (!isValidSlug(form.content_piece_name)) { setError('Content Piece Name must be lowercase with no spaces.'); return false; }
-    if (!form.utm_topic) { setError('UTM Topic is required.'); return false; }
-    if (!isValidSlug(form.utm_topic)) { setError('UTM Topic must be lowercase with no spaces.'); return false; }
+    if (form.utm_topic && !isValidSlug(form.utm_topic)) { setError('UTM Topic must be lowercase with no spaces.'); return false; }
     return true;
   };
 
@@ -471,7 +470,6 @@ export const NewUtmBuilderPage = () => {
         utm_medium: form.utm_medium,
         utm_campaign: form.campaign_utm,
         utm_content: utmContent,
-        utm_topic: form.utm_topic,
         tagged_url: taggedUrl,
       };
       if (form.use_source_website) {
@@ -481,6 +479,7 @@ export const NewUtmBuilderPage = () => {
       }
       if (form.link_placement) properties.link_placement = form.link_placement;
       if (form.utm_term) properties.utm_term = form.utm_term;
+      if (form.utm_topic) properties.utm_topic = form.utm_topic;
 
       const result = await callFn('createUtmLink', { properties, campaignId: form.campaign_id });
       if (result.error) {
@@ -665,7 +664,7 @@ export const NewUtmBuilderPage = () => {
 
           <Select label="Link Placement" name="link_placement" value={form.link_placement} onChange={val => handleChange('link_placement', val)} options={placementOptions} placeholder="Select placement..." />
 
-          <Input label="UTM Topic" name="utm_topic" value={form.utm_topic} onChange={val => handleChange('utm_topic', val)} placeholder="e.g. model-theme" required error={!!topicSlugError} validationMessage={topicSlugError || undefined} />
+          <Input label="UTM Topic" name="utm_topic" value={form.utm_topic} onChange={val => handleChange('utm_topic', val)} placeholder="e.g. model-theme" error={!!topicSlugError} validationMessage={topicSlugError || undefined} />
 
           <Divider />
 

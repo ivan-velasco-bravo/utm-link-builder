@@ -1,8 +1,10 @@
 import React from 'react';
 import {
+  Box,
   Button,
   Divider,
   Flex,
+  Icon,
   Text,
   Alert,
   LoadingSpinner,
@@ -269,20 +271,25 @@ export const RulesPage = () => {
         {saved && <Alert title="Saved!" variant="success">Dependencies updated successfully.</Alert>}
 
         {isAdmin && (
-          <Flex direction="row" gap="extra-small" style={{ justifyContent: 'flex-end', alignItems: 'center' }}>
-            <Text format={{ fontWeight: 'bold' }}>LOCK</Text>
-            <Button
-              variant="secondary"
-              size="xs"
-              overlay={<Tooltip>Only app editors will be able to make changes</Tooltip>}
-            >ⓘ</Button>
-            <Toggle
-              name="super_admin_only"
-              label=""
-              labelDisplay="hidden"
-              checked={superAdminOnly}
-              onChange={(checked) => handleToggleSuperAdminOnly(checked)}
-            />
+          <Flex direction="row" gap="small" align="center">
+            <Box flex={1}></Box>
+            <Flex direction="row" gap="extra-small" align="center">
+              <Text format={{ fontWeight: 'bold' }}>LOCK</Text>
+              <Button
+                variant="transparent"
+                size="xs"
+                overlay={<Tooltip>Only app editors will be able to make changes.</Tooltip>}
+              >
+                <Icon name="info" screenReaderText="Lock help" />
+              </Button>
+              <Toggle
+                name="super_admin_only"
+                label=""
+                labelDisplay="hidden"
+                checked={superAdminOnly}
+                onChange={(checked) => handleToggleSuperAdminOnly(checked)}
+              />
+            </Flex>
           </Flex>
         )}
 

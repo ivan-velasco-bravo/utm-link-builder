@@ -35,7 +35,7 @@ export const InstructionsPage = () => {
         <Flex direction="column" gap="small">
           <Text format={{ fontWeight: 'bold' }}>Using the URL Builder</Text>
           <Text>
-            Open the URL Builder from your bookmarked HubSpot app link. Once links are saved, they can be found on the Assets tab of the related Campaign.
+            Open the URL Builder from your bookmarked HubSpot app link. Use the orange Actions button in the top-right of the app to find the available pages. Once links are saved, they can be found on the Assets tab of the related Campaign.
           </Text>
           <Text>
             The app does not allow duplicate tagged URLs. From a UTM point of view, two records with the same final URL would represent the same tracking link, so a duplicate would not add reporting value and could create confusion about which record should be used.
@@ -45,7 +45,7 @@ export const InstructionsPage = () => {
         <Flex direction="column" gap="small">
           <Text format={{ fontWeight: 'bold' }}>Single UTM Builder</Text>
           <Text>
-            Create one tagged URL at a time. Select a Campaign, add the destination URL, choose source and medium, enter the content activation date and content name, then review, save, and copy the generated URL.
+            Create one tagged URL at a time. Select a Campaign, add the destination URL, choose source and medium, enter the content activation date and content name, optionally add topic or term details, then review, save, and copy the generated URL.
           </Text>
           <Text>
             Use Website Source when the source is a specific partner, sponsor, publisher, or syndicated-content website instead of a standard source option.

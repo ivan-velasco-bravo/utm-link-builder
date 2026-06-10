@@ -601,7 +601,7 @@ export const NewUtmBuilderPage = () => {
                 placeholder="e.g. partner-site.com"
                 required
                 error={!!form.source_website && !isValidUrl(form.source_website)}
-                validationMessage={form.source_website && !isValidUrl(form.source_website) ? 'Enter a valid URL.' : selectedSource ? `utm_source=${selectedSource}` : undefined}
+                validationMessage={form.source_website && !isValidUrl(form.source_website) ? 'Enter a valid URL.' : undefined}
               />
             )}
             <Select label="UTM Medium" name="utm_medium" value={form.utm_medium} onChange={val => handleChange('utm_medium', val)} options={filteredMediumOptions} placeholder={form.use_source_website || form.utm_source ? "Select medium..." : "Select source first..."} required />
@@ -618,14 +618,14 @@ export const NewUtmBuilderPage = () => {
               todayButtonLabel="Today"
               required
               error={!!dateError}
-              validationMessage={dateError || 'Used as the date prefix for utm_content.'}
+              validationMessage={dateError || undefined}
             />
-            <Input label="Content Piece Name" name="content_piece_name" value={form.content_piece_name} onChange={val => handleChange('content_piece_name', val)} placeholder="e.g. q3-brand-video" required error={!!slugError} validationMessage={slugError || 'Lowercase, no spaces. Combined with placement to form utm_content.'} />
+            <Input label="Content Piece Name" name="content_piece_name" value={form.content_piece_name} onChange={val => handleChange('content_piece_name', val)} placeholder="e.g. q3-brand-video" required error={!!slugError} validationMessage={slugError || undefined} />
           </Flex>
 
           <Select label="Link Placement" name="link_placement" value={form.link_placement} onChange={val => handleChange('link_placement', val)} options={placementOptions} placeholder="Select placement..." />
 
-          <Input label="UTM Topic" name="utm_topic" value={form.utm_topic} onChange={val => handleChange('utm_topic', val)} placeholder="e.g. model-theme" required error={!!topicSlugError} validationMessage={topicSlugError || 'Lowercase, no spaces.'} />
+          <Input label="UTM Topic" name="utm_topic" value={form.utm_topic} onChange={val => handleChange('utm_topic', val)} placeholder="e.g. model-theme" required error={!!topicSlugError} validationMessage={topicSlugError || undefined} />
 
           <Divider />
 
@@ -635,7 +635,7 @@ export const NewUtmBuilderPage = () => {
             loadingUsers ? <LoadingSpinner label="Loading users..." /> :
             <Select label="Sales Agent (UTM Term)" name="utm_term" value={form.utm_term} onChange={val => handleChange('utm_term', val)} options={userOptions} placeholder="Select agent..." />
           ) : (
-            <Input label="UTM Term" name="utm_term" value={form.utm_term} onChange={val => handleChange('utm_term', toSlug(val).slice(0, 20))} placeholder="e.g. ai-image-generation" validationMessage={"Max 20 characters. " + (form.utm_term.length > 0 ? form.utm_term.length + "/20" : "")} />
+            <Input label="UTM Term" name="utm_term" value={form.utm_term} onChange={val => handleChange('utm_term', toSlug(val).slice(0, 20))} placeholder="e.g. ai-image-generation" />
           )}
 
           <Divider />

@@ -4,8 +4,6 @@ import {
   Button,
   Checkbox,
   DateInput,
-  DescriptionList,
-  DescriptionListItem,
   Divider,
   Flex,
   Icon,
@@ -558,6 +556,11 @@ export const MassUtmBuilderPage = () => {
           const taggedUrl = buildTaggedUrl(row, campaignUtm);
           const selectedSource = getRowSource(row);
           const mediumPlaceholder = row.use_source_website || row.utm_source ? 'Select medium...' : 'Select source first...';
+          const destinationUrlError = !!row.destination_url && !isValidUrl(row.destination_url);
+          const sourceWebsiteError = !!row.source_website && !isValidUrl(row.source_website);
+          const contentDateError = !!row.content_activation_date && !isValidIsoDate(row.content_activation_date);
+          const contentNameError = !!row.content_piece_name && !isValidSlug(row.content_piece_name);
+          const topicError = !!row.utm_topic && !isValidSlug(row.utm_topic);
 
           return (
             <Tile key={row.id} compact>
@@ -586,6 +589,8 @@ export const MassUtmBuilderPage = () => {
                             onChange={value => handleRowChange(row.id, 'destination_url', value)}
                             placeholder="runware.ai/pricing"
                             required
+                            error={destinationUrlError}
+                            validationMessage={destinationUrlError ? 'Enter a valid URL.' : undefined}
                           />
                         </Box>
                         <Box flex={2}>
@@ -597,8 +602,8 @@ export const MassUtmBuilderPage = () => {
                               onChange={value => handleRowChange(row.id, 'source_website', value)}
                               placeholder="e.g. partner-site.com"
                               required
-                              error={!!row.source_website && !isValidUrl(row.source_website)}
-                              validationMessage={row.source_website && !isValidUrl(row.source_website) ? 'Enter a valid URL.' : selectedSource ? `utm_source=${selectedSource}` : undefined}
+                              error={sourceWebsiteError}
+                              validationMessage={sourceWebsiteError ? 'Enter a valid URL.' : undefined}
                             />
                           ) : (
                             <Select
@@ -636,7 +641,8 @@ export const MassUtmBuilderPage = () => {
                             clearButtonLabel="Clear"
                             todayButtonLabel="Today"
                             required
-                            validationMessage="Used as the date prefix for utm_content."
+                            error={contentDateError}
+                            validationMessage={contentDateError ? 'Enter a valid date.' : undefined}
                           />
                         </Box>
                         <Box flex={2}>
@@ -647,8 +653,8 @@ export const MassUtmBuilderPage = () => {
                             onChange={value => handleRowChange(row.id, 'content_piece_name', value)}
                             placeholder="e.g. q3-brand-video"
                             required
-                            error={!!row.content_piece_name && !isValidSlug(row.content_piece_name)}
-                            validationMessage="Lowercase, no spaces. Combined with placement to form utm_content."
+                            error={contentNameError}
+                            validationMessage={contentNameError ? 'Use lowercase letters, numbers, hyphens, and underscores only.' : undefined}
                           />
                         </Box>
                         <Box flex={1}>
@@ -671,8 +677,8 @@ export const MassUtmBuilderPage = () => {
                             value={row.utm_topic}
                             onChange={value => handleRowChange(row.id, 'utm_topic', value)}
                             placeholder="e.g. model-theme"
-                            error={!!row.utm_topic && !isValidSlug(row.utm_topic)}
-                            validationMessage="Lowercase, no spaces."
+                            error={topicError}
+                            validationMessage={topicError ? 'Use lowercase letters, numbers, hyphens, and underscores only.' : undefined}
                           />
                         </Box>
                         <Box flex={1}>
@@ -682,7 +688,6 @@ export const MassUtmBuilderPage = () => {
                             value={row.utm_term}
                             onChange={value => handleRowChange(row.id, 'utm_term', toSlug(value).slice(0, 20))}
                             placeholder="e.g. ai-image-generation"
-                            validationMessage={`Max 20 characters. ${row.utm_term.length > 0 ? `${row.utm_term.length}/20` : ''}`}
                           />
                         </Box>
                         <Box flex={1}>
@@ -715,14 +720,40 @@ export const MassUtmBuilderPage = () => {
                   <Box flex={1}>
                     <Alert title="UTM Preview" variant="info">
                       <Flex direction="column" gap="small">
-                        <DescriptionList direction="row">
-                          <DescriptionListItem label="utm_source">{selectedSource || '-'}</DescriptionListItem>
-                          <DescriptionListItem label="utm_medium">{row.utm_medium || '-'}</DescriptionListItem>
-                          <DescriptionListItem label="utm_campaign">{campaignUtm || '-'}</DescriptionListItem>
-                          <DescriptionListItem label="utm_content">{getRowUtmContent(row) || '-'}</DescriptionListItem>
-                          <DescriptionListItem label="utm_topic">{row.utm_topic || '-'}</DescriptionListItem>
-                          <DescriptionListItem label="utm_term">{row.utm_term || '-'}</DescriptionListItem>
-                        </DescriptionList>
+                        <Flex direction="row" gap="medium" wrap="wrap">
+                          <Box flex={1}>
+                            <Flex direction="column" gap="small">
+                              <Flex direction="column" gap="extra-small">
+                                <Text variant="microcopy">utm_source</Text>
+                                <Text>{selectedSource || '-'}</Text>
+                              </Flex>
+                              <Flex direction="column" gap="extra-small">
+                                <Text variant="microcopy">utm_campaign</Text>
+                                <Text truncate={{ tooltipText: campaignUtm || '-' }}>{campaignUtm || '-'}</Text>
+                              </Flex>
+                              <Flex direction="column" gap="extra-small">
+                                <Text variant="microcopy">utm_topic</Text>
+                                <Text>{row.utm_topic || '-'}</Text>
+                              </Flex>
+                            </Flex>
+                          </Box>
+                          <Box flex={1}>
+                            <Flex direction="column" gap="small">
+                              <Flex direction="column" gap="extra-small">
+                                <Text variant="microcopy">utm_medium</Text>
+                                <Text>{row.utm_medium || '-'}</Text>
+                              </Flex>
+                              <Flex direction="column" gap="extra-small">
+                                <Text variant="microcopy">utm_content</Text>
+                                <Text truncate={{ tooltipText: getRowUtmContent(row) || '-' }}>{getRowUtmContent(row) || '-'}</Text>
+                              </Flex>
+                              <Flex direction="column" gap="extra-small">
+                                <Text variant="microcopy">utm_term</Text>
+                                <Text>{row.utm_term || '-'}</Text>
+                              </Flex>
+                            </Flex>
+                          </Box>
+                        </Flex>
 
                         <Text format={{ fontWeight: 'demibold' }}>Tagged URL</Text>
                         {taggedUrl ? (

@@ -46,6 +46,37 @@ function findCampaignStartDateProperty(properties) {
   return startDate?.name || null;
 }
 
+function formatApiError(prefix, status, data) {
+  const details = [];
+
+  if (data && typeof data === 'object') {
+    if (data.message) details.push(data.message);
+
+    if (Array.isArray(data.errors)) {
+      data.errors.forEach(error => {
+        const propertyName = error?.context?.propertyName?.[0];
+        const message = error?.message || error?.error || '';
+        if (propertyName && message) details.push(`${propertyName}: ${message}`);
+        else if (message) details.push(message);
+      });
+    }
+
+    if (Array.isArray(data.validationResults)) {
+      data.validationResults.forEach(result => {
+        const name = result?.name || result?.propertyName || result?.field || 'field';
+        const message = result?.message || result?.error || JSON.stringify(result);
+        details.push(`${name}: ${message}`);
+      });
+    }
+  }
+
+  if (details.length === 0) {
+    details.push(typeof data === 'string' ? data : JSON.stringify(data));
+  }
+
+  return `${prefix} ${status}: ${details.join(' | ')}`.slice(0, 1200);
+}
+
 // Get the single 'current' config row from HubDB
 async function getConfigRow(token) {
   const r = await apiRequest('GET', `/cms/v3/hubdb/tables/${HUBDB_TABLE_ID}/rows/draft?limit=50`, null, token);
@@ -261,13 +292,13 @@ exports.main = async (context) => {
       case 'createUtmLink': {
         const { properties, campaignId } = params;
         const r = await apiRequest('POST', '/crm/v3/objects/2-203776196', { properties }, token);
-        if (r.status !== 201) throw new Error(`Create failed ${r.status}: ${JSON.stringify(r.data)}`);
+        if (r.status !== 201) throw new Error(formatApiError('Create failed', r.status, r.data));
         const id = r.data.id;
         if (campaignId && id) {
           const assoc = await apiRequest('PUT',
             `/crm/v4/objects/2-203776196/${id}/associations/0-35/${campaignId}`,
             [{ associationCategory: 'USER_DEFINED', associationTypeId: 42 }], token);
-          if (assoc.status >= 400) return { success: true, id, warning: `Assoc failed: ${JSON.stringify(assoc.data)}` };
+          if (assoc.status >= 400) return { success: true, id, warning: formatApiError('Assoc failed', assoc.status, assoc.data) };
         }
         return { success: true, id };
       }
@@ -290,7 +321,7 @@ exports.main = async (context) => {
 
           const r = await apiRequest('POST', '/crm/v3/objects/2-203776196', { properties }, token);
           if (r.status !== 201) {
-            errors.push({ index: i, error: `Create failed ${r.status}: ${JSON.stringify(r.data)}` });
+            errors.push({ index: i, error: formatApiError('Create failed', r.status, r.data) });
             continue;
           }
 
@@ -301,13 +332,16 @@ exports.main = async (context) => {
             const assoc = await apiRequest('PUT',
               `/crm/v4/objects/2-203776196/${id}/associations/0-35/${campaignId}`,
               [{ associationCategory: 'USER_DEFINED', associationTypeId: 42 }], token);
-            if (assoc.status >= 400) warnings.push({ index: i, id, warning: `Assoc failed: ${JSON.stringify(assoc.data)}` });
+            if (assoc.status >= 400) warnings.push({ index: i, id, warning: formatApiError('Assoc failed', assoc.status, assoc.data) });
           }
         }
 
         if (errors.length > 0) {
+          const errorDetails = errors
+            .map(error => `Link ${error.index + 1}: ${error.error}`)
+            .join(' ');
           return {
-            error: `Created ${created.length} of ${items.length} UTM Link records. ${errors.length} failed.`,
+            error: `Created ${created.length} of ${items.length} UTM Link records. ${errors.length} failed. ${errorDetails}`.slice(0, 1200),
             created,
             errors,
             warnings,

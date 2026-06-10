@@ -454,7 +454,7 @@ export const MassUtmBuilderPage = () => {
   const buildProperties = (row: LinkRow): Record<string, string> => {
     const rowTaggedUrl = buildTaggedUrl(row, campaignUtm);
     const properties: Record<string, string> = {
-      content_piece_name: rowTaggedUrl,
+      content_piece_name: row.content_piece_name,
       destination_url: normalizeUrl(row.destination_url),
       content_activation_date: toHubSpotDateValue(row.content_activation_date),
       utm_medium: row.utm_medium,

@@ -266,6 +266,7 @@ export const MassUtmBuilderPage = () => {
   const [saving, setSaving] = useState(false);
   const [sourceMediumMap, setSourceMediumMap] = useState<Record<string, string[]>>(DEFAULT_MAP);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [duplicateRecords, setDuplicateRecords] = useState<DuplicateRecord[]>([]);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -356,6 +357,7 @@ export const MassUtmBuilderPage = () => {
     setRows(prev => prev.map(row => row.id === id ? { ...row, ...updates } : row));
     setSuccess(null);
     setError(null);
+    setWarning(null);
     setDuplicateRecords([]);
   };
 
@@ -403,6 +405,7 @@ export const MassUtmBuilderPage = () => {
     setCampaignActivationMonth(campaign?.activationMonth || '');
     setSuccess(null);
     setError(null);
+    setWarning(null);
     setDuplicateRecords([]);
   };
 
@@ -410,6 +413,7 @@ export const MassUtmBuilderPage = () => {
     setRows(prev => [...prev, createEmptyRow()]);
     setSuccess(null);
     setError(null);
+    setWarning(null);
     setDuplicateRecords([]);
   };
 
@@ -426,6 +430,7 @@ export const MassUtmBuilderPage = () => {
     ]);
     setSuccess(null);
     setError(null);
+    setWarning(null);
     setDuplicateRecords([]);
   };
 
@@ -433,6 +438,7 @@ export const MassUtmBuilderPage = () => {
     setRows(prev => prev.length === 1 ? [createEmptyRow()] : prev.filter(row => row.id !== id));
     setSuccess(null);
     setError(null);
+    setWarning(null);
     setDuplicateRecords([]);
   };
 
@@ -498,11 +504,13 @@ export const MassUtmBuilderPage = () => {
     const validationError = validateRows();
     if (validationError) {
       setError(validationError);
+      setWarning(null);
       return;
     }
 
     setSaving(true);
     setError(null);
+    setWarning(null);
     setSuccess(null);
     try {
       const items = rows.map(row => ({ properties: buildProperties(row) }));
@@ -519,6 +527,9 @@ export const MassUtmBuilderPage = () => {
 
       const count = result.created?.length || items.length;
       setSuccess(`${count} UTM Link record${count === 1 ? '' : 's'} created and associated with campaign.`);
+      if (Array.isArray(result.warnings) && result.warnings.length > 0) {
+        setWarning(`Created ${count} UTM Link record${count === 1 ? '' : 's'}, but ${result.warnings.length} campaign association warning${result.warnings.length === 1 ? '' : 's'} occurred.`);
+      }
       setDuplicateRecords([]);
       setRows([createEmptyRow()]);
     } catch (e) {
@@ -536,6 +547,40 @@ export const MassUtmBuilderPage = () => {
 
   if (loading) return <LoadingSpinner label="Loading Mass UTM Builder..." />;
 
+  const displayError = error && error.length > 900 ? `${error.slice(0, 900)}...` : error;
+
+  const renderStatusMessages = (position: string) => {
+    if (!displayError && !warning && !campaignUtmWarning && !success) return null;
+
+    return (
+      <Flex direction="column" gap="small">
+        {displayError && (
+          <Flex direction="column" gap="extra-small">
+            <Alert title="Error" variant="error">{displayError}</Alert>
+            {portalId && duplicateRecords.map(record => {
+              const recordUrl = buildUtmLinkRecordUrl(portalId, record.id);
+              const label = typeof record.index === 'number'
+                ? `Open existing UTM Link record for Link ${record.index + 1}`
+                : 'Open existing UTM Link record';
+              return (
+                <Link key={`${position}-${record.id}-${record.index ?? 'record'}`} href={{ url: recordUrl, external: true }}>
+                  {label}
+                </Link>
+              );
+            })}
+          </Flex>
+        )}
+        {warning && <Alert title="Warning" variant="warning">{warning}</Alert>}
+        {campaignUtmWarning && (
+          <Alert title="Campaign UTM format warning" variant="warning">
+            {campaignUtmWarning}
+          </Alert>
+        )}
+        {success && <Alert title="Saved!" variant="success">{success}</Alert>}
+      </Flex>
+    );
+  };
+
   return (
     <>
       <PageBreadcrumbs>
@@ -544,25 +589,7 @@ export const MassUtmBuilderPage = () => {
       <PageTitle>Mass UTM Builder</PageTitle>
 
       <Flex direction="column" gap="medium">
-        {error && (
-          <Alert title="Error" variant="error">
-            <Flex direction="column" gap="extra-small">
-              <Text>{error}</Text>
-              {portalId && duplicateRecords.map(record => {
-                const recordUrl = buildUtmLinkRecordUrl(portalId, record.id);
-                const label = typeof record.index === 'number'
-                  ? `Open existing UTM Link record for Link ${record.index + 1}`
-                  : 'Open existing UTM Link record';
-                return (
-                  <Link key={`${record.id}-${record.index ?? 'record'}`} href={{ url: recordUrl, external: true }}>
-                    {label}
-                  </Link>
-                );
-              })}
-            </Flex>
-          </Alert>
-        )}
-        {success && <Alert title="Saved!" variant="success">{success}</Alert>}
+        {renderStatusMessages('top')}
 
         <Flex direction="row" gap="large" align="end" wrap="wrap">
           <Box flex={2}>
@@ -586,11 +613,6 @@ export const MassUtmBuilderPage = () => {
             </Box>
           )}
         </Flex>
-        {campaignUtmWarning && (
-          <Alert title="Campaign UTM format warning" variant="warning">
-            {campaignUtmWarning}
-          </Alert>
-        )}
 
         <Flex direction="row" gap="small">
           <Button onClick={addRow} variant="secondary">Add link</Button>
@@ -824,6 +846,7 @@ export const MassUtmBuilderPage = () => {
           <Button onClick={addRow} variant="secondary">Add link</Button>
           <Button onClick={handleSaveAll} variant="primary" disabled={saving || rows.length === 0}>{saving ? 'Saving...' : `Save ${rows.length} link${rows.length === 1 ? '' : 's'}`}</Button>
         </Flex>
+        {renderStatusMessages('bottom')}
       </Flex>
     </>
   );

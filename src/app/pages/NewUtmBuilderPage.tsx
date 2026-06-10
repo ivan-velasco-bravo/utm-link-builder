@@ -40,6 +40,10 @@ function toWebsiteSource(val: string): string {
     .replace(/\s+/g, '-');
 }
 
+function toSourceWebsiteValue(val: string): string {
+  return toSlug(toWebsiteSource(val).replace(/\./g, '-')).slice(0, 20);
+}
+
 import { DEFAULT_MAP } from './RulesPage.tsx';
 
 function isValidUrl(val: string): boolean {
@@ -206,7 +210,7 @@ export const NewUtmBuilderPage = () => {
   const selectedCampaign = campaignOptions.find(campaign => campaign.value === form.campaign_id);
   const campaignUtmWarning = getCampaignUtmWarning(selectedCampaign);
 
-  const selectedSource = form.use_source_website ? toWebsiteSource(form.source_website) : form.utm_source;
+  const selectedSource = form.use_source_website ? toSourceWebsiteValue(form.source_website) : form.utm_source;
 
   const filteredMediumOptions = !form.use_source_website && form.utm_source && sourceMediumMap[form.utm_source]
     ? mediumOptions.filter(o => sourceMediumMap[form.utm_source].includes(o.value))
@@ -385,7 +389,9 @@ export const NewUtmBuilderPage = () => {
         return;
       }
     }
-    if (field === 'content_piece_name' || field === 'utm_topic') {
+    if (field === 'source_website') {
+      setForm(prev => ({ ...prev, source_website: toSourceWebsiteValue(value) }));
+    } else if (field === 'content_piece_name' || field === 'utm_topic') {
       const slugged = toSlug(value);
       const nextError = slugged && !isValidSlug(slugged) ? 'Lowercase letters, numbers, hyphens and underscores only.' : '';
       if (field === 'content_piece_name') {
@@ -433,7 +439,7 @@ export const NewUtmBuilderPage = () => {
     try {
       const destUrl = normalizeUrl(form.destination_url);
       const properties: Record<string, string> = {
-        content_piece_name: form.content_piece_name,
+        content_piece_name: taggedUrl,
         destination_url: destUrl,
         content_activation_date: toHubSpotDateValue(form.content_activation_date),
         utm_medium: form.utm_medium,
@@ -583,7 +589,7 @@ export const NewUtmBuilderPage = () => {
           <Flex direction="row" gap="small">
             <Select label="UTM Source" name="utm_source" value={form.utm_source} onChange={val => handleChange('utm_source', val)} options={sourceOptions} placeholder={form.use_source_website ? "Using source website..." : "Select source..."} required={!form.use_source_website} readOnly={form.use_source_website} />
             {form.use_source_website && (
-              <Input label="Source Website" name="source_website" value={form.source_website} onChange={val => handleChange('source_website', val)} placeholder="e.g. partner-site.com" required validationMessage={selectedSource ? `utm_source=${selectedSource}` : undefined} />
+              <Input label="Source Website" name="source_website" value={form.source_website} onChange={val => handleChange('source_website', val)} placeholder="e.g. partner-site" required validationMessage={`Max 20 characters. ${selectedSource.length}/20${selectedSource ? `. utm_source=${selectedSource}` : ''}`} />
             )}
             <Select label="UTM Medium" name="utm_medium" value={form.utm_medium} onChange={val => handleChange('utm_medium', val)} options={filteredMediumOptions} placeholder={form.use_source_website || form.utm_source ? "Select medium..." : "Select source first..."} required />
           </Flex>

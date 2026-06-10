@@ -79,6 +79,10 @@ function toWebsiteSource(val: string): string {
     .replace(/\s+/g, '-');
 }
 
+function toSourceWebsiteValue(val: string): string {
+  return toSlug(toWebsiteSource(val).replace(/\./g, '-')).slice(0, 20);
+}
+
 function isValidUrl(val: string): boolean {
   if (!val) return false;
   try {
@@ -192,7 +196,7 @@ function createEmptyRow(): LinkRow {
 }
 
 function getRowSource(row: LinkRow): string {
-  return row.use_source_website ? toWebsiteSource(row.source_website) : row.utm_source;
+  return row.use_source_website ? toSourceWebsiteValue(row.source_website) : row.utm_source;
 }
 
 function getRowUtmContent(row: LinkRow): string {
@@ -348,6 +352,11 @@ export const MassUtmBuilderPage = () => {
       return;
     }
 
+    if (field === 'source_website') {
+      updateRow(id, { source_website: toSourceWebsiteValue(value) });
+      return;
+    }
+
     if (field === 'content_piece_name' || field === 'utm_topic') {
       updateRow(id, { [field]: toSlug(value) } as Partial<LinkRow>);
       return;
@@ -441,14 +450,15 @@ export const MassUtmBuilderPage = () => {
   };
 
   const buildProperties = (row: LinkRow): Record<string, string> => {
+    const rowTaggedUrl = buildTaggedUrl(row, campaignUtm);
     const properties: Record<string, string> = {
-      content_piece_name: row.content_piece_name,
+      content_piece_name: rowTaggedUrl,
       destination_url: normalizeUrl(row.destination_url),
       content_activation_date: toHubSpotDateValue(row.content_activation_date),
       utm_medium: row.utm_medium,
       utm_campaign: campaignUtm,
       utm_content: getRowUtmContent(row),
-      tagged_url: buildTaggedUrl(row, campaignUtm),
+      tagged_url: rowTaggedUrl,
     };
 
     if (row.use_source_website) {
@@ -588,9 +598,9 @@ export const MassUtmBuilderPage = () => {
                             name={`source_website_${row.id}`}
                             value={row.source_website}
                             onChange={value => handleRowChange(row.id, 'source_website', value)}
-                            placeholder="e.g. partner-site.com"
+                            placeholder="e.g. partner-site"
                             required
-                            validationMessage={selectedSource ? `utm_source=${selectedSource}` : undefined}
+                            validationMessage={`Max 20 characters. ${selectedSource.length}/20${selectedSource ? `. utm_source=${selectedSource}` : ''}`}
                           />
                         ) : (
                           <Select

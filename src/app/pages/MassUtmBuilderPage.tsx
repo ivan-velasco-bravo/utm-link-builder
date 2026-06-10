@@ -60,6 +60,13 @@ interface LinkRow {
   utm_term: string;
 }
 
+interface DuplicateRecord {
+  id: string;
+  contentPieceName?: string;
+  taggedUrl?: string;
+  index?: number;
+}
+
 function isValidSlug(val: string): boolean {
   return SLUG_REGEX.test(val);
 }
@@ -89,7 +96,8 @@ function toSourceWebsiteValue(val: string): string {
 function isValidUrl(val: string): boolean {
   if (!val) return false;
   try {
-    const normalized = val.startsWith('http') ? val : 'https://' + val;
+    const trimmed = val.trim();
+    const normalized = /^https?:\/\//i.test(trimmed) ? trimmed : 'https://' + trimmed;
     const url = new URL(normalized);
     const parts = url.hostname.split('.');
     return parts.length >= 2 && parts[parts.length - 1].length >= 2;
@@ -100,7 +108,8 @@ function isValidUrl(val: string): boolean {
 
 function normalizeUrl(val: string): string {
   if (!val) return '';
-  return val.startsWith('http') ? val : 'https://' + val;
+  const trimmed = val.trim();
+  return /^https?:\/\//i.test(trimmed) ? trimmed : 'https://' + trimmed;
 }
 
 function pad2(val: number): string {
@@ -234,6 +243,10 @@ function buildCampaignUrl(portalId: number, campaignId: string): string {
   return `https://app-eu1.hubspot.com/marketing/${portalId}/campaigns/${encodeURIComponent(campaignId)}`;
 }
 
+function buildUtmLinkRecordUrl(portalId: number, recordId: string): string {
+  return `https://app-eu1.hubspot.com/contacts/${portalId}/record/2-203776196/${encodeURIComponent(recordId)}`;
+}
+
 function getCampaignUtmWarning(campaign?: CampaignOption): string | null {
   if (!campaign) return null;
   if (!campaign.activationMonth) {
@@ -253,6 +266,7 @@ export const MassUtmBuilderPage = () => {
   const [saving, setSaving] = useState(false);
   const [sourceMediumMap, setSourceMediumMap] = useState<Record<string, string[]>>(DEFAULT_MAP);
   const [error, setError] = useState<string | null>(null);
+  const [duplicateRecords, setDuplicateRecords] = useState<DuplicateRecord[]>([]);
   const [success, setSuccess] = useState<string | null>(null);
 
   const [sourceOptions, setSourceOptions] = useState<FieldOption[]>([]);
@@ -267,7 +281,8 @@ export const MassUtmBuilderPage = () => {
 
   const selectedCampaign = campaignOptions.find(campaign => campaign.value === campaignId);
   const campaignUtmWarning = getCampaignUtmWarning(selectedCampaign);
-  const campaignUrl = campaignId && context.portal?.id ? buildCampaignUrl(context.portal.id, campaignId) : '';
+  const portalId = context.portal?.id;
+  const campaignUrl = campaignId && portalId ? buildCampaignUrl(portalId, campaignId) : '';
 
   useEffect(() => {
     loadStoredMap();
@@ -341,6 +356,7 @@ export const MassUtmBuilderPage = () => {
     setRows(prev => prev.map(row => row.id === id ? { ...row, ...updates } : row));
     setSuccess(null);
     setError(null);
+    setDuplicateRecords([]);
   };
 
   const handleRowChange = (id: string, field: keyof LinkRow, value: string) => {
@@ -387,12 +403,14 @@ export const MassUtmBuilderPage = () => {
     setCampaignActivationMonth(campaign?.activationMonth || '');
     setSuccess(null);
     setError(null);
+    setDuplicateRecords([]);
   };
 
   const addRow = () => {
     setRows(prev => [...prev, createEmptyRow()]);
     setSuccess(null);
     setError(null);
+    setDuplicateRecords([]);
   };
 
   const cloneRow = (id: string) => {
@@ -408,12 +426,14 @@ export const MassUtmBuilderPage = () => {
     ]);
     setSuccess(null);
     setError(null);
+    setDuplicateRecords([]);
   };
 
   const removeRow = (id: string) => {
     setRows(prev => prev.length === 1 ? [createEmptyRow()] : prev.filter(row => row.id !== id));
     setSuccess(null);
     setError(null);
+    setDuplicateRecords([]);
   };
 
   const getFilteredMediumOptions = (row: LinkRow): FieldOption[] => {
@@ -474,6 +494,7 @@ export const MassUtmBuilderPage = () => {
   };
 
   const handleSaveAll = async () => {
+    setDuplicateRecords([]);
     const validationError = validateRows();
     if (validationError) {
       setError(validationError);
@@ -486,10 +507,19 @@ export const MassUtmBuilderPage = () => {
     try {
       const items = rows.map(row => ({ properties: buildProperties(row) }));
       const result = await callFn('createUtmLinks', { items, campaignId });
-      if (result.error) throw new Error(result.error);
+      if (result.error) {
+        const duplicates = Array.isArray(result.errors)
+          ? result.errors
+            .filter((item: any) => item.duplicate?.id)
+            .map((item: any) => ({ ...item.duplicate, index: item.index }))
+          : [];
+        setDuplicateRecords(duplicates);
+        throw new Error(result.error);
+      }
 
       const count = result.created?.length || items.length;
       setSuccess(`${count} UTM Link record${count === 1 ? '' : 's'} created and associated with campaign.`);
+      setDuplicateRecords([]);
       setRows([createEmptyRow()]);
     } catch (e) {
       setError(`Save failed: ${e instanceof Error ? e.message : JSON.stringify(e)}`);
@@ -514,7 +544,24 @@ export const MassUtmBuilderPage = () => {
       <PageTitle>Mass UTM Builder</PageTitle>
 
       <Flex direction="column" gap="medium">
-        {error && <Alert title="Error" variant="error">{error}</Alert>}
+        {error && (
+          <Alert title="Error" variant="error">
+            <Flex direction="column" gap="extra-small">
+              <Text>{error}</Text>
+              {portalId && duplicateRecords.map(record => {
+                const recordUrl = buildUtmLinkRecordUrl(portalId, record.id);
+                const label = typeof record.index === 'number'
+                  ? `Open existing UTM Link record for Link ${record.index + 1}`
+                  : 'Open existing UTM Link record';
+                return (
+                  <Link key={`${record.id}-${record.index ?? 'record'}`} href={{ url: recordUrl, external: true }}>
+                    {label}
+                  </Link>
+                );
+              })}
+            </Flex>
+          </Alert>
+        )}
         {success && <Alert title="Saved!" variant="success">{success}</Alert>}
 
         <Flex direction="row" gap="large" align="end" wrap="wrap">

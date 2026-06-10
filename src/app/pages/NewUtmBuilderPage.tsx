@@ -13,6 +13,7 @@ import {
   Link,
   hubspot,
   useExtensionActions,
+  useExtensionContext,
 } from '@hubspot/ui-extensions';
 import {
   PageBreadcrumbs,
@@ -53,7 +54,8 @@ import { DEFAULT_MAP } from './RulesPage.tsx';
 function isValidUrl(val: string): boolean {
   if (!val) return false;
   try {
-    const normalized = val.startsWith('http') ? val : 'https://' + val;
+    const trimmed = val.trim();
+    const normalized = /^https?:\/\//i.test(trimmed) ? trimmed : 'https://' + trimmed;
     const url = new URL(normalized);
     // Must have a dot in hostname AND TLD must be at least 2 chars
     const parts = url.hostname.split('.');
@@ -63,7 +65,8 @@ function isValidUrl(val: string): boolean {
 
 function normalizeUrl(val: string): string {
   if (!val) return '';
-  return val.startsWith('http') ? val : 'https://' + val;
+  const trimmed = val.trim();
+  return /^https?:\/\//i.test(trimmed) ? trimmed : 'https://' + trimmed;
 }
 
 function pad2(val: number): string {
@@ -160,6 +163,12 @@ interface CampaignOption {
   activationMonth: string;
 }
 
+interface DuplicateRecord {
+  id: string;
+  contentPieceName?: string;
+  taggedUrl?: string;
+}
+
 function getCampaignUtmWarning(campaign?: CampaignOption): string | null {
   if (!campaign) return null;
   if (!campaign.activationMonth) {
@@ -172,12 +181,18 @@ function getCampaignUtmWarning(campaign?: CampaignOption): string | null {
   return null;
 }
 
+function buildUtmLinkRecordUrl(portalId: number, recordId: string): string {
+  return `https://app-eu1.hubspot.com/contacts/${portalId}/record/2-203776196/${encodeURIComponent(recordId)}`;
+}
+
 export const NewUtmBuilderPage = () => {
   const actions = useExtensionActions();
+  const context = useExtensionContext<'pages'>();
   const [loading, setLoading] = useState(true);
   const [sourceMediumMap, setSourceMediumMap] = useState<Record<string, string[]>>(DEFAULT_MAP);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [duplicateRecord, setDuplicateRecord] = useState<DuplicateRecord | null>(null);
   const [success, setSuccess] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
 
@@ -340,6 +355,7 @@ export const NewUtmBuilderPage = () => {
     }));
     setSuccess(false);
     setError(null);
+    setDuplicateRecord(null);
   };
 
   const handleDateChange = (val: string) => {
@@ -351,6 +367,7 @@ export const NewUtmBuilderPage = () => {
     }
     setSuccess(false);
     setError(null);
+    setDuplicateRecord(null);
   };
 
   const handleDatePickerChange = (val: DateInputValue | null) => {
@@ -370,6 +387,7 @@ export const NewUtmBuilderPage = () => {
     }));
     setSuccess(false);
     setError(null);
+    setDuplicateRecord(null);
   };
 
   const handleUrlChange = (val: string) => {
@@ -381,6 +399,7 @@ export const NewUtmBuilderPage = () => {
     }
     setSuccess(false);
     setError(null);
+    setDuplicateRecord(null);
   };
 
   const handleChange = (field: string, value: string) => {
@@ -391,6 +410,7 @@ export const NewUtmBuilderPage = () => {
         setForm(prev => ({ ...prev, utm_source: value, utm_medium: '' }));
         setSuccess(false);
         setError(null);
+        setDuplicateRecord(null);
         return;
       }
     }
@@ -408,6 +428,7 @@ export const NewUtmBuilderPage = () => {
     }
     setSuccess(false);
     setError(null);
+    setDuplicateRecord(null);
   };
 
   const handleSalesAgentToggle = (val: string[]) => {
@@ -437,6 +458,7 @@ export const NewUtmBuilderPage = () => {
   };
 
   const handleSave = async () => {
+    setDuplicateRecord(null);
     if (!validate()) return;
     setSaving(true);
     setError(null);
@@ -461,9 +483,13 @@ export const NewUtmBuilderPage = () => {
       if (form.utm_term) properties.utm_term = form.utm_term;
 
       const result = await callFn('createUtmLink', { properties, campaignId: form.campaign_id });
-      if (result.error) throw new Error(result.error);
+      if (result.error) {
+        if (result.duplicate) setDuplicateRecord(result.duplicate);
+        throw new Error(result.error);
+      }
 
       setSuccess(true);
+      setDuplicateRecord(null);
       if (result.id) setCreatedId(result.id);
       setForm(prev => ({
         campaign_id: prev.campaign_id,
@@ -520,6 +546,7 @@ export const NewUtmBuilderPage = () => {
       utm_term: '',
     });
     setError(null);
+    setDuplicateRecord(null);
     setSuccess(false);
     setCreatedId(null);
     setSlugError('');
@@ -531,8 +558,12 @@ export const NewUtmBuilderPage = () => {
 
   if (loading) return <LoadingSpinner label="Loading UTM Builder..." />;
 
-  const recordUrl = createdId
-    ? `https://app-eu1.hubspot.com/contacts/144066378/record/2-203776196/${createdId}`
+  const portalId = context.portal?.id;
+  const recordUrl = createdId && portalId
+    ? buildUtmLinkRecordUrl(portalId, createdId)
+    : null;
+  const duplicateRecordUrl = duplicateRecord?.id && portalId
+    ? buildUtmLinkRecordUrl(portalId, duplicateRecord.id)
     : null;
 
   return (
@@ -547,13 +578,22 @@ export const NewUtmBuilderPage = () => {
         {/* Left: Form */}
         <Flex direction="column" gap="medium">
 
-          {error && <Alert title="Error" variant="error">{error}</Alert>}
+          {error && (
+            <Alert title="Error" variant="error">
+              <Flex direction="column" gap="extra-small">
+                <Text>{error}</Text>
+                {duplicateRecordUrl && (
+                  <Link href={{ url: duplicateRecordUrl, external: true }}>Open existing UTM Link record</Link>
+                )}
+              </Flex>
+            </Alert>
+          )}
           {success && (
             <Flex direction="column" gap="extra-small">
               <Alert title="Saved!" variant="success">
                 UTM Link created and associated with campaign.
               </Alert>
-              {recordUrl && <Link href={recordUrl}>View created UTM Link record →</Link>}
+              {recordUrl && <Link href={{ url: recordUrl, external: true }}>View created UTM Link record</Link>}
             </Flex>
           )}
 

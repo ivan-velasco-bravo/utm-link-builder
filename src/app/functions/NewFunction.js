@@ -1,6 +1,7 @@
 const https = require('https');
 
 const HUBDB_TABLE_ID = '2694996157';
+const UTM_LINK_OBJECT_TYPE = '2-203776196';
 
 function apiRequest(method, path, body, token) {
   return new Promise((resolve, reject) => {
@@ -75,6 +76,39 @@ function formatApiError(prefix, status, data) {
   }
 
   return `${prefix} ${status}: ${details.join(' | ')}`.slice(0, 1200);
+}
+
+async function findExistingUtmLink(contentPieceName, token) {
+  if (!contentPieceName) return null;
+
+  const r = await apiRequest('POST', `/crm/v3/objects/${UTM_LINK_OBJECT_TYPE}/search`, {
+    filterGroups: [{
+      filters: [{
+        propertyName: 'content_piece_name',
+        operator: 'EQ',
+        value: contentPieceName,
+      }],
+    }],
+    properties: ['content_piece_name', 'tagged_url'],
+    limit: 1,
+  }, token);
+
+  if (r.status !== 200) {
+    throw new Error(formatApiError('Duplicate check failed', r.status, r.data));
+  }
+
+  const duplicate = r.data.results?.[0];
+  if (!duplicate) return null;
+
+  return {
+    id: duplicate.id,
+    contentPieceName: duplicate.properties?.content_piece_name || contentPieceName,
+    taggedUrl: duplicate.properties?.tagged_url || '',
+  };
+}
+
+function duplicateError() {
+  return 'A UTM Link record already exists with this tagged URL.';
 }
 
 // Get the single 'current' config row from HubDB
@@ -291,12 +325,19 @@ exports.main = async (context) => {
       // Create a UTM link CRM record
       case 'createUtmLink': {
         const { properties, campaignId } = params;
-        const r = await apiRequest('POST', '/crm/v3/objects/2-203776196', { properties }, token);
-        if (r.status !== 201) throw new Error(formatApiError('Create failed', r.status, r.data));
+        const duplicate = await findExistingUtmLink(properties?.content_piece_name, token);
+        if (duplicate) return { error: duplicateError(), duplicate };
+
+        const r = await apiRequest('POST', `/crm/v3/objects/${UTM_LINK_OBJECT_TYPE}`, { properties }, token);
+        if (r.status !== 201) {
+          const duplicateAfterCreate = await findExistingUtmLink(properties?.content_piece_name, token);
+          if (duplicateAfterCreate) return { error: duplicateError(), duplicate: duplicateAfterCreate };
+          throw new Error(formatApiError('Create failed', r.status, r.data));
+        }
         const id = r.data.id;
         if (campaignId && id) {
           const assoc = await apiRequest('PUT',
-            `/crm/v4/objects/2-203776196/${id}/associations/0-35/${campaignId}`,
+            `/crm/v4/objects/${UTM_LINK_OBJECT_TYPE}/${id}/associations/0-35/${campaignId}`,
             [{ associationCategory: 'USER_DEFINED', associationTypeId: 42 }], token);
           if (assoc.status >= 400) return { success: true, id, warning: formatApiError('Assoc failed', assoc.status, assoc.data) };
         }
@@ -311,6 +352,7 @@ exports.main = async (context) => {
         const created = [];
         const errors = [];
         const warnings = [];
+        const seenContentNames = new Map();
 
         for (let i = 0; i < items.length; i += 1) {
           const properties = items[i]?.properties;
@@ -319,8 +361,29 @@ exports.main = async (context) => {
             continue;
           }
 
-          const r = await apiRequest('POST', '/crm/v3/objects/2-203776196', { properties }, token);
+          const contentPieceName = properties.content_piece_name;
+          if (contentPieceName && seenContentNames.has(contentPieceName)) {
+            errors.push({
+              index: i,
+              error: `This tagged URL matches Link ${seenContentNames.get(contentPieceName) + 1} in this save.`,
+            });
+            continue;
+          }
+
+          const duplicate = await findExistingUtmLink(contentPieceName, token);
+          if (duplicate) {
+            errors.push({ index: i, error: duplicateError(), duplicate });
+            continue;
+          }
+          if (contentPieceName) seenContentNames.set(contentPieceName, i);
+
+          const r = await apiRequest('POST', `/crm/v3/objects/${UTM_LINK_OBJECT_TYPE}`, { properties }, token);
           if (r.status !== 201) {
+            const duplicateAfterCreate = await findExistingUtmLink(contentPieceName, token);
+            if (duplicateAfterCreate) {
+              errors.push({ index: i, error: duplicateError(), duplicate: duplicateAfterCreate });
+              continue;
+            }
             errors.push({ index: i, error: formatApiError('Create failed', r.status, r.data) });
             continue;
           }
@@ -330,7 +393,7 @@ exports.main = async (context) => {
 
           if (campaignId && id) {
             const assoc = await apiRequest('PUT',
-              `/crm/v4/objects/2-203776196/${id}/associations/0-35/${campaignId}`,
+              `/crm/v4/objects/${UTM_LINK_OBJECT_TYPE}/${id}/associations/0-35/${campaignId}`,
               [{ associationCategory: 'USER_DEFINED', associationTypeId: 42 }], token);
             if (assoc.status >= 400) warnings.push({ index: i, id, warning: formatApiError('Assoc failed', assoc.status, assoc.data) });
           }

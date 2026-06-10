@@ -569,9 +569,9 @@ export const NewUtmBuilderPage = () => {
   return (
     <>
       <PageBreadcrumbs>
-        <PageBreadcrumbs.Current>New UTM Builder</PageBreadcrumbs.Current>
+        <PageBreadcrumbs.Current>Single UTM Builder</PageBreadcrumbs.Current>
       </PageBreadcrumbs>
-      <PageTitle>New UTM Builder</PageTitle>
+      <PageTitle>Single UTM Builder</PageTitle>
 
       <Flex direction="row" gap="large">
 

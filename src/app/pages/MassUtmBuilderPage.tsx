@@ -8,11 +8,13 @@ import {
   DescriptionListItem,
   Divider,
   Flex,
+  Icon,
   Input,
   Link,
   LoadingSpinner,
   Select,
   Text,
+  Tooltip,
   hubspot,
   useExtensionContext,
   useExtensionActions,
@@ -203,7 +205,7 @@ function buildTaggedUrl(row: LinkRow, campaignUtm: string): string {
   const source = getRowSource(row);
   const utmContent = getRowUtmContent(row);
 
-  if (!row.destination_url || !source || !row.utm_medium || !campaignUtm || !utmContent || !row.utm_topic) return '';
+  if (!row.destination_url || !source || !row.utm_medium || !campaignUtm || !utmContent) return '';
   if (!isValidUrl(row.destination_url) || !isValidIsoDate(row.content_activation_date)) return '';
 
   try {
@@ -213,7 +215,7 @@ function buildTaggedUrl(row: LinkRow, campaignUtm: string): string {
     url.searchParams.set('utm_campaign', campaignUtm);
     url.searchParams.set('utm_content', utmContent);
     if (row.utm_term) url.searchParams.set('utm_term', row.utm_term);
-    url.searchParams.set('utm_topic', row.utm_topic);
+    if (row.utm_topic) url.searchParams.set('utm_topic', row.utm_topic);
     return url.toString();
   } catch {
     return '';
@@ -431,8 +433,7 @@ export const MassUtmBuilderPage = () => {
       if (!row.utm_medium) return `${label}: UTM Medium is required.`;
       if (!row.content_piece_name) return `${label}: Content Piece Name is required.`;
       if (!isValidSlug(row.content_piece_name)) return `${label}: Content Piece Name must be lowercase with no spaces.`;
-      if (!row.utm_topic) return `${label}: UTM Topic is required.`;
-      if (!isValidSlug(row.utm_topic)) return `${label}: UTM Topic must be lowercase with no spaces.`;
+      if (row.utm_topic && !isValidSlug(row.utm_topic)) return `${label}: UTM Topic must be lowercase with no spaces.`;
       if (!buildTaggedUrl(row, campaignUtm)) return `${label}: Complete all required fields to generate a tagged URL.`;
     }
 
@@ -447,7 +448,6 @@ export const MassUtmBuilderPage = () => {
       utm_medium: row.utm_medium,
       utm_campaign: campaignUtm,
       utm_content: getRowUtmContent(row),
-      utm_topic: row.utm_topic,
       tagged_url: buildTaggedUrl(row, campaignUtm),
     };
 
@@ -458,6 +458,7 @@ export const MassUtmBuilderPage = () => {
     }
     if (row.link_placement) properties.link_placement = row.link_placement;
     if (row.utm_term) properties.utm_term = row.utm_term;
+    if (row.utm_topic) properties.utm_topic = row.utm_topic;
 
     return properties;
   };
@@ -506,9 +507,21 @@ export const MassUtmBuilderPage = () => {
         {error && <Alert title="Error" variant="error">{error}</Alert>}
         {success && <Alert title="Saved!" variant="success">{success}</Alert>}
 
-        <Flex direction="row" gap="small" align="end">
-          <Box flex={1}>
+        <Flex direction="row" gap="small" align="end" wrap="wrap">
+          <Box flex={2}>
             <Select label="Campaign" name="campaign_id" value={campaignId} onChange={value => handleCampaignChange(String(value))} options={campaignOptions} placeholder="Search campaigns..." required />
+          </Box>
+          <Box flex={1}>
+            <Flex direction="column" gap="extra-small">
+              <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>Activation month</Text>
+              <Text>{campaignActivationMonth || '-'}</Text>
+            </Flex>
+          </Box>
+          <Box flex={2}>
+            <Flex direction="column" gap="extra-small">
+              <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>utm_campaign</Text>
+              <Text truncate={{ tooltipText: campaignUtm || '-' }}>{campaignUtm || '-'}</Text>
+            </Flex>
           </Box>
           {campaignUrl && (
             <Box flex="none">
@@ -516,8 +529,6 @@ export const MassUtmBuilderPage = () => {
             </Box>
           )}
         </Flex>
-        {campaignActivationMonth && <Text format={{ fontWeight: 'demibold' }}>activation month: {campaignActivationMonth}</Text>}
-        {campaignUtm && <Text format={{ fontWeight: 'demibold' }}>utm_campaign: {campaignUtm}</Text>}
         {campaignUtmWarning && (
           <Alert title="Campaign UTM format warning" variant="warning">
             {campaignUtmWarning}
@@ -542,8 +553,8 @@ export const MassUtmBuilderPage = () => {
               direction="column"
               gap="medium"
               style={{
-                backgroundColor: '#f4f8ff',
-                border: '1px solid #d8e7fb',
+                backgroundColor: '#eef7ff',
+                border: '1px solid #c8def7',
                 borderRadius: '6px',
                 padding: '16px',
               }}
@@ -551,8 +562,8 @@ export const MassUtmBuilderPage = () => {
               <Flex direction="row" gap="small" justify="between" align="center">
                 <Text format={{ fontWeight: 'bold' }}>Link {index + 1}</Text>
                 <Flex direction="row" gap="small">
-                  <Button onClick={() => cloneRow(row.id)} variant="secondary">Clone</Button>
-                  <Button onClick={() => removeRow(row.id)} variant="secondary">Remove</Button>
+                  <Button onClick={() => cloneRow(row.id)} variant="secondary" size="sm">Clone</Button>
+                  <Button onClick={() => removeRow(row.id)} variant="secondary" size="sm">Remove</Button>
                 </Flex>
               </Flex>
 
@@ -560,33 +571,18 @@ export const MassUtmBuilderPage = () => {
                 <Box flex={2}>
                   <Flex direction="column" gap="small">
                     <Flex direction="row" gap="small" wrap="wrap">
-                      <Box flex={1}>
-                        <Flex direction="column" gap="extra-small">
-                          <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>Source type</Text>
-                          <Checkbox
-                            name={`website_source_${row.id}`}
-                            value="website_source"
-                            checked={row.use_source_website}
-                            onChange={checked => handleWebsiteSourceToggle(row.id, checked)}
-                          >
-                            Website Source
-                          </Checkbox>
-                        </Flex>
-                      </Box>
                       <Box flex={2}>
-                        <Select
-                          label="UTM Source"
-                          name={`utm_source_${row.id}`}
-                          value={row.utm_source}
-                          onChange={value => handleRowChange(row.id, 'utm_source', String(value))}
-                          options={sourceOptions}
-                          placeholder={row.use_source_website ? 'Using source website...' : 'Select source...'}
-                          required={!row.use_source_website}
-                          readOnly={row.use_source_website}
+                        <Input
+                          label="Destination URL"
+                          name={`destination_url_${row.id}`}
+                          value={row.destination_url}
+                          onChange={value => handleRowChange(row.id, 'destination_url', value)}
+                          placeholder="runware.ai/pricing"
+                          required
                         />
                       </Box>
-                      {row.use_source_website && (
-                        <Box flex={2}>
+                      <Box flex={2}>
+                        {row.use_source_website ? (
                           <Input
                             label="Source Website"
                             name={`source_website_${row.id}`}
@@ -596,8 +592,18 @@ export const MassUtmBuilderPage = () => {
                             required
                             validationMessage={selectedSource ? `utm_source=${selectedSource}` : undefined}
                           />
-                        </Box>
-                      )}
+                        ) : (
+                          <Select
+                            label="UTM Source"
+                            name={`utm_source_${row.id}`}
+                            value={row.utm_source}
+                            onChange={value => handleRowChange(row.id, 'utm_source', String(value))}
+                            options={sourceOptions}
+                            placeholder="Select source..."
+                            required
+                          />
+                        )}
+                      </Box>
                       <Box flex={2}>
                         <Select
                           label="UTM Medium"
@@ -657,7 +663,6 @@ export const MassUtmBuilderPage = () => {
                           value={row.utm_topic}
                           onChange={value => handleRowChange(row.id, 'utm_topic', value)}
                           placeholder="e.g. model-theme"
-                          required
                           error={!!row.utm_topic && !isValidSlug(row.utm_topic)}
                           validationMessage="Lowercase, no spaces."
                         />
@@ -672,23 +677,35 @@ export const MassUtmBuilderPage = () => {
                           validationMessage={`Max 20 characters. ${row.utm_term.length > 0 ? `${row.utm_term.length}/20` : ''}`}
                         />
                       </Box>
+                      <Box flex={1}>
+                        <Flex direction="column" gap="extra-small">
+                          <Text variant="microcopy" format={{ fontWeight: 'demibold' }}>Website Source</Text>
+                          <Flex direction="row" gap="extra-small" align="center">
+                            <Checkbox
+                              name={`website_source_${row.id}`}
+                              value="website_source"
+                              checked={row.use_source_website}
+                              onChange={checked => handleWebsiteSourceToggle(row.id, checked)}
+                              variant="small"
+                            >
+                              Website Source
+                            </Checkbox>
+                            <Button
+                              variant="transparent"
+                              size="xs"
+                              overlay={<Tooltip>Check this when entering a specific URL source, such as partners, sponsors, or syndicated content.</Tooltip>}
+                            >
+                              <Icon name="info" screenReaderText="Website Source help" />
+                            </Button>
+                          </Flex>
+                        </Flex>
+                      </Box>
                     </Flex>
                   </Flex>
                 </Box>
 
                 <Box flex={1}>
                   <Flex direction="column" gap="small">
-                    <Input
-                      label="Destination URL"
-                      name={`destination_url_${row.id}`}
-                      value={row.destination_url}
-                      onChange={value => handleRowChange(row.id, 'destination_url', value)}
-                      placeholder="runware.ai/pricing"
-                      required
-                    />
-
-                    <Divider />
-
                     <Text format={{ fontWeight: 'demibold' }}>UTM Preview</Text>
                     <DescriptionList direction="row">
                       <DescriptionListItem label="utm_source">{selectedSource || '-'}</DescriptionListItem>
